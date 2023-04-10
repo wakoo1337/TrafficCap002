@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
         final String capture = appcapture_edit.getText().toString();
         if (!capture.isEmpty()) {
             start_intent.putExtra(CaptureService.APP_TO_LISTEN, capture);
-        };
+        }
         bindService(start_intent, capture_connection, BIND_AUTO_CREATE | BIND_ABOVE_CLIENT);
     }
 }

@@ -53,7 +53,8 @@ public class CaptureService extends VpnService {
                 sock_thread.start();
                 desc_thread.start();
                 return new CaptureServiceBinder();
-            } catch (Exception e) {
+            } catch (
+                    Exception e) {
                 Log.e("Запуск службы", "Невозможно запустить службу", e);
                 stopSelf();
                 return null;
@@ -68,11 +69,15 @@ public class CaptureService extends VpnService {
 
     @Override
     public void onDestroy() {
-        if (sock_thread != null) sock_thread.interrupt();
-        if (desc_thread != null) desc_thread.interrupt();
+        if (sock_thread != null)
+            sock_thread.interrupt();
+        if (desc_thread != null)
+            desc_thread.interrupt();
         try {
-            if (pfd != null) pfd.close();
-        } catch (IOException ioexcp) {
+            if (pfd != null)
+                pfd.close();
+        } catch (
+                IOException ioexcp) {
             Log.e("Остановка службы", "Невозможно закрыть дескриптор", ioexcp);
         }
     }

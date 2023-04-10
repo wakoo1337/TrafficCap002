@@ -11,8 +11,10 @@ public class ChecksumComputer {
 
     public ChecksumComputer moreData(ByteBuffer bb) {
         byte restore;
-        if (phase) restore = bb.get();
-        else restore = 0;
+        if (phase)
+            restore = bb.get();
+        else
+            restore = 0;
         long temp_acc = 0;
         while (bb.remaining() > 7) {
             final long delta = bb.getLong();
@@ -40,7 +42,7 @@ public class ChecksumComputer {
     private static int fold32(long x) {
         while ((x >>> 32) != 0) {
             final long hi = x >>> 32;
-            final long lo = x  &  0xFFFFFFFFL;
+            final long lo = x & 0xFFFFFFFFL;
             x = hi + lo;
         }
         return (int) x;
@@ -49,7 +51,7 @@ public class ChecksumComputer {
     private static int fold16(int x) {
         while ((x >>> 16) != 0) {
             final int hi = (x >>> 16) & 0xFFFF;
-            final int lo =  x  &  0xFFFF;
+            final int lo = x & 0xFFFF;
             x = hi + lo;
         }
         return x;

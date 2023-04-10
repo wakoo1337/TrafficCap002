@@ -1,14 +1,20 @@
-package com.wakoo.trafficcap002.networking.protocols;
+package com.wakoo.trafficcap002.networking.protocols.ip;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
-public interface Packet {
+public interface IPPacket {
     int PROTOCOL_IPv4 = 4;
     int PROTOCOL_IPv6 = 6;
 
     InetAddress getSourceAddress();
+
     InetAddress getDestinationAddress();
+
     int getProtocol();
+
     ByteBuffer getDatagram();
+
+    ByteBuffer getChecksumPseudoHeader();
+    // Здесь должна быть ещё информация о сегментации
 }

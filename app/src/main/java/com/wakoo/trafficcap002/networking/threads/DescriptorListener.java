@@ -31,7 +31,8 @@ public class DescriptorListener implements Runnable {
                 final ByteBuffer bytes_buffer = (ByteBuffer) ByteBuffer.wrap(bytes).limit(readed);
                 sock_listener.feedPacket(bytes_buffer);
             }
-        } catch(IOException ioexcp) {
+        } catch (
+                IOException ioexcp) {
             Log.e("Прослушивание дескриптора", "Невозможно прочитать дескриптор", ioexcp);
             cap_svc.stopSelf();
         }

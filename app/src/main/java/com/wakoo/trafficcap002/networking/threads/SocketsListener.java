@@ -1,20 +1,21 @@
 package com.wakoo.trafficcap002.networking.threads;
 
+import static com.wakoo.trafficcap002.networking.protocols.ip.IPPacket.PROTOCOL_IPv4;
+import static com.wakoo.trafficcap002.networking.protocols.ip.IPPacket.PROTOCOL_IPv6;
+
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import com.wakoo.trafficcap002.CaptureService;
-import com.wakoo.trafficcap002.networking.protocols.Packet;
+import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.ip.BadIPPacketException;
-import com.wakoo.trafficcap002.networking.protocols.ip.IPv4Packet;
-import com.wakoo.trafficcap002.networking.protocols.ip.IPv6Packet;
+import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4BufferConsumer;
+import com.wakoo.trafficcap002.networking.protocols.tcp.TCPDatagramConsumer;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SocketsListener implements Runnable {
@@ -22,22 +23,6 @@ public class SocketsListener implements Runnable {
     private final ConcurrentLinkedQueue<ByteBuffer> packets_queue;
     private final CaptureService cap_svc;
     private Selector selector;
-    private static final Map<Integer, PacketProcessorFactory> processors;
-    static {
-        processors = new HashMap<>();
-        processors.put(Packet.PROTOCOL_IPv4, new PacketProcessorFactory() {
-            @Override
-            public Packet make(ByteBuffer packet) throws BadIPPacketException {
-                return IPv4Packet.of(packet);
-            }
-        });
-        processors.put(Packet.PROTOCOL_IPv6, new PacketProcessorFactory() {
-            @Override
-            public Packet make(ByteBuffer packet) throws BadIPPacketException {
-                return IPv6Packet.of(packet);
-            }
-        });
-    }
 
     public SocketsListener(CaptureService cap_svc, ParcelFileDescriptor pfd) {
         this.cap_svc = cap_svc;
@@ -49,28 +34,26 @@ public class SocketsListener implements Runnable {
     public void run() {
         try (Selector selector = Selector.open()) {
             this.selector = selector;
+            final TCPDatagramConsumer tcp = new TCPDatagramConsumer();
+            final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, fd, tcp);
             while (!Thread.currentThread().isInterrupted()) {
                 selector.select();
                 while (!packets_queue.isEmpty()) {
                     final ByteBuffer packet_buffer;
                     packet_buffer = packets_queue.poll();
-                    try {
-                        final int protocol = Byte.toUnsignedInt(packet_buffer.get(0)) >>> 4;
-                        final PacketProcessorFactory processor_factory;
-                        processor_factory = processors.get(protocol);
-                        if (processor_factory != null) try {
-                            final Packet packet;
-                            packet = processor_factory.make(packet_buffer);
+                    final int protocol = Byte.toUnsignedInt(packet_buffer.get(0)) >>> 4;
+                    switch (protocol) {
+                        case PROTOCOL_IPv4:
+                            ipv4_consumer.accept(packet_buffer);
+                            break;
+                        case PROTOCOL_IPv6:
 
-                        } catch (BadIPPacketException badipexcp) {
-                            Log.e("Разбор пакета сетевого уровня", "Неверный формат пакета", badipexcp);
-                        }
-                    } catch (IndexOutOfBoundsException indexexcp) {
-                        Log.d("Разбор пакета сетевого уровня", "Пакет имеет длину менее одного байта", indexexcp);
+                            break;
                     }
                 }
             }
-        } catch (IOException ioexcp) {
+        } catch (
+                IOException ioexcp) {
             Log.e("Прослушивание сокетов", "Исключение селектора", ioexcp);
             cap_svc.stopSelf();
         }
@@ -78,10 +61,11 @@ public class SocketsListener implements Runnable {
 
     public void feedPacket(ByteBuffer bb) {
         packets_queue.add(bb);
-        if (selector != null) selector.wakeup();
+        if (selector != null)
+            selector.wakeup();
     }
 
     private interface PacketProcessorFactory {
-        Packet make(ByteBuffer packet) throws BadIPPacketException;
+        IPPacket make(ByteBuffer packet) throws BadIPPacketException;
     }
 }
