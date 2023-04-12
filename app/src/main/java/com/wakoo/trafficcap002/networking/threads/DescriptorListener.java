@@ -14,7 +14,7 @@ public class DescriptorListener implements Runnable {
     private final FileDescriptor fd;
     private final SocketsListener sock_listener;
     private final CaptureService cap_svc;
-    public static final int MAX_PACKET = 8192;
+    public static final int INTERFACE_MTU = 8192;
 
     public DescriptorListener(CaptureService cap_svc, ParcelFileDescriptor pfd, SocketsListener sock_listener) {
         this.cap_svc = cap_svc;
@@ -26,7 +26,7 @@ public class DescriptorListener implements Runnable {
     public void run() {
         try (FileInputStream in_stream = new FileInputStream(fd)) {
             while (!Thread.currentThread().isInterrupted()) {
-                final byte[] bytes = new byte[MAX_PACKET];
+                final byte[] bytes = new byte[INTERFACE_MTU];
                 final int readed = in_stream.read(bytes);
                 final ByteBuffer bytes_buffer = (ByteBuffer) ByteBuffer.wrap(bytes).limit(readed);
                 sock_listener.feedPacket(bytes_buffer);

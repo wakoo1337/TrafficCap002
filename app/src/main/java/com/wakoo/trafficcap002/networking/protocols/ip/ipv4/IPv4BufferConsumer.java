@@ -1,14 +1,13 @@
 package com.wakoo.trafficcap002.networking.protocols.ip.ipv4;
 
-import static com.wakoo.trafficcap002.networking.protocols.DatagramConsumer.PROTOCOL_TCP;
-import static com.wakoo.trafficcap002.networking.protocols.DatagramConsumer.PROTOCOL_UDP;
+import static com.wakoo.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_TCP;
+import static com.wakoo.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_UDP;
 
 import android.util.Log;
 
 import com.wakoo.trafficcap002.networking.protocols.ip.BadIPPacketException;
-import com.wakoo.trafficcap002.networking.protocols.tcp.TCPDatagramConsumer;
+import com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPDatagramConsumer;
 
-import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
@@ -19,8 +18,8 @@ public class IPv4BufferConsumer implements Consumer<ByteBuffer> {
     private final Selector sel;
     private final TCPDatagramConsumer tcp;
 
-    public IPv4BufferConsumer(Selector sel, FileDescriptor fd, TCPDatagramConsumer tcp) {
-        this.out = new FileOutputStream(fd);
+    public IPv4BufferConsumer(Selector sel, FileOutputStream out, TCPDatagramConsumer tcp) {
+        this.out = out;
         this.sel = sel;
         this.tcp = tcp;
     }

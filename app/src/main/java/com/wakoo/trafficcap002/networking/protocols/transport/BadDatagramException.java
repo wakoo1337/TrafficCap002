@@ -1,4 +1,4 @@
-package com.wakoo.trafficcap002.networking.protocols;
+package com.wakoo.trafficcap002.networking.protocols.transport;
 
 public class BadDatagramException extends Exception {
     public BadDatagramException() {

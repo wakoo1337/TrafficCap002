@@ -1,13 +1,12 @@
-package com.wakoo.trafficcap002.networking.protocols.tcp;
+package com.wakoo.trafficcap002.networking.protocols.transport.tcp;
 
 import com.wakoo.trafficcap002.networking.ChecksumComputer;
-import com.wakoo.trafficcap002.networking.protocols.BadDatagramException;
-import com.wakoo.trafficcap002.networking.protocols.Datagram;
+import com.wakoo.trafficcap002.networking.protocols.transport.BadDatagramException;
+import com.wakoo.trafficcap002.networking.protocols.transport.Datagram;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
-import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4Packet;
 
+import java.net.Inet6Address;
 import java.net.InetAddress;
-import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -27,10 +26,8 @@ public class TCPPacket implements IPPacket, Datagram {
     private final int window;
     private final int urgent;
     private final ByteBuffer payload;
-    private final boolean mss_present;
-    private final int mss;
-    private final boolean scale_present;
-    private final int scale;
+    private final boolean mss_present, scale_present;
+    private final int mss, scale;
 
     private TCPPacket(IPPacket parent, int src_port, int dst_port, int seq, int ack, boolean[] flags, int window, int urgent, ByteBuffer payload, boolean mss_present, int mss, boolean scale_present, int scale) {
         this.parent = parent;
@@ -90,7 +87,7 @@ public class TCPPacket implements IPPacket, Datagram {
             datagram.position(20);
             boolean end_not_reached = true;
             boolean mss_present = false;
-            int mss = 1;
+            int mss = (parent.getDestinationAddress() instanceof Inet6Address) ? 1280 : 576;
             boolean scale_present = false;
             int scale = 0;
             while (end_not_reached && (datagram.position() < (4 * data_offset))) {
@@ -99,7 +96,6 @@ public class TCPPacket implements IPPacket, Datagram {
                 switch (kind) {
                     case OPTION_END:
                         end_not_reached = false;
-                        break;
                     case OPTION_NOOP:
                         break;
                     case OPTION_MSS:

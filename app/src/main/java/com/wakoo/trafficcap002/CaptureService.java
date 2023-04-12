@@ -1,7 +1,6 @@
 package com.wakoo.trafficcap002;
 
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.VpnService;
 import android.os.Binder;
 import android.os.IBinder;
@@ -13,7 +12,6 @@ import com.wakoo.trafficcap002.networking.threads.SocketsListener;
 
 import java.io.IOException;
 import java.net.Inet4Address;
-import java.net.InetAddress;
 
 public class CaptureService extends VpnService {
     public static final String APP_TO_LISTEN = "com.wakoo.trafficcap002.CaptureService.listenapp";
@@ -44,7 +42,7 @@ public class CaptureService extends VpnService {
                 builder.addAddress(Inet4Address.getByAddress(new byte[]{(byte) 192, 88, 99, 3}), 32)
                         .addRoute(Inet4Address.getByAddress(new byte[]{0, 0, 0, 0}), 0)
                         .setBlocking(true)
-                        .setMtu(DescriptorListener.MAX_PACKET);
+                        .setMtu(DescriptorListener.INTERFACE_MTU);
                 pfd = builder.establish();
                 sock_listener = new SocketsListener(this, pfd);
                 desc_listsner = new DescriptorListener(this, pfd, sock_listener);

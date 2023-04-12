@@ -10,9 +10,10 @@ import com.wakoo.trafficcap002.CaptureService;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.ip.BadIPPacketException;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4BufferConsumer;
-import com.wakoo.trafficcap002.networking.protocols.tcp.TCPDatagramConsumer;
+import com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPDatagramConsumer;
 
 import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
@@ -34,8 +35,9 @@ public class SocketsListener implements Runnable {
     public void run() {
         try (Selector selector = Selector.open()) {
             this.selector = selector;
+            final FileOutputStream out = new FileOutputStream(fd);
             final TCPDatagramConsumer tcp = new TCPDatagramConsumer();
-            final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, fd, tcp);
+            final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, out, tcp);
             while (!Thread.currentThread().isInterrupted()) {
                 selector.select();
                 while (!packets_queue.isEmpty()) {

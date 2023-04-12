@@ -1,12 +1,21 @@
 package com.wakoo.trafficcap002.networking;
 
+import androidx.annotation.NonNull;
+
 import java.nio.ByteBuffer;
 
-public class ChecksumComputer {
+public class ChecksumComputer implements Cloneable {
     private int acc;
     private boolean phase;
 
     public ChecksumComputer() {
+        acc = 0;
+        phase = false;
+    }
+
+    private ChecksumComputer(int acc, boolean phase) {
+        this.acc = acc;
+        this.phase = phase;
     }
 
     public ChecksumComputer moreData(ByteBuffer bb) {
@@ -55,5 +64,11 @@ public class ChecksumComputer {
             x = hi + lo;
         }
         return x;
+    }
+
+    @NonNull
+    @Override
+    public ChecksumComputer clone() {
+        return new ChecksumComputer(acc, phase);
     }
 }

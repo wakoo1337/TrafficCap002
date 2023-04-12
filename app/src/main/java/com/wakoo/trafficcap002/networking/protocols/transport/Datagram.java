@@ -1,4 +1,4 @@
-package com.wakoo.trafficcap002.networking.protocols;
+package com.wakoo.trafficcap002.networking.protocols.transport;
 
 import java.nio.ByteBuffer;
 

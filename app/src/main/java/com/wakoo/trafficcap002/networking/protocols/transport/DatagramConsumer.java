@@ -1,4 +1,4 @@
-package com.wakoo.trafficcap002.networking.protocols;
+package com.wakoo.trafficcap002.networking.protocols.transport;
 
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 
