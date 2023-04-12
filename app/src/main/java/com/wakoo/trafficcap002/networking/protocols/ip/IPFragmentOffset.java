@@ -1,6 +1,8 @@
 package com.wakoo.trafficcap002.networking.protocols.ip;
 
 public class IPFragmentOffset {
+    // TODO упразднить, сделать массивы только packet_offset
+
     private final int length;
     private final int datagram_offset;
     private final int packet_offset;

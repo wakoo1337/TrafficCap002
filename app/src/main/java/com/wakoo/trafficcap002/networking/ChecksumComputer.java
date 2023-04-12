@@ -45,7 +45,7 @@ public class ChecksumComputer implements Cloneable {
     }
 
     public int get() {
-        return (int) ((~acc) & 0xFFFFL);
+        return (~acc) & 0xFFFF;
     }
 
     private static int fold32(long x) {

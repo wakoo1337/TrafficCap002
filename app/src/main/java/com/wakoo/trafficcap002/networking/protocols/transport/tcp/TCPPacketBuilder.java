@@ -69,14 +69,17 @@ public class TCPPacketBuilder implements DatagramBuilder {
         tcp_header.position(0);
         for (int i=0;i<bytes.length;i++) {
             int offset = offsets[i].getPacketOffset();
+            // TODO вынести
             if (tcp_header.position() < tcp_header.limit()) {
                 final int copied = Integer.min(tcp_header.remaining(), bytes[i].length - offset);
                 tcp_header.get(bytes[i], offset, copied);
                 offset += copied;
             }
-            final int copied = Integer.min(data.remaining(), bytes[i].length - offset);
-            data.get(bytes[i], offset, copied);
-            offset += copied;
+            if (tcp_header.position() == tcp_header.limit()) {
+                final int copied = Integer.min(data.remaining(), bytes[i].length - offset);
+                data.get(bytes[i], offset, copied);
+                offset += copied;
+            }
         }
     }
 }
