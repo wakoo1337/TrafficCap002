@@ -1,7 +1,6 @@
 package com.wakoo.trafficcap002.networking.protocols.transport.udp;
 
 import com.wakoo.trafficcap002.networking.ChecksumComputer;
-import com.wakoo.trafficcap002.networking.protocols.ip.IPFragmentOffset;
 import com.wakoo.trafficcap002.networking.protocols.transport.DatagramBuilder;
 
 import java.nio.ByteBuffer;
@@ -22,7 +21,7 @@ public class UDPPacketBuilder implements DatagramBuilder {
     }
 
     @Override
-    public void fillPacketWithData(byte[][] bytes, IPFragmentOffset[] offsets, ChecksumComputer cc) {
+    public void fillPacketWithData(byte[][] bytes, int[] offsets, ChecksumComputer cc) {
         assert bytes.length == offsets.length;
         final ByteBuffer udp_header = ByteBuffer.allocate(8);
         udp_header.putShort((short) src_port);
@@ -33,7 +32,7 @@ public class UDPPacketBuilder implements DatagramBuilder {
         cc.moreData(udp_header).moreData(data);
         data.position(0);
         for (int i = 0; i < bytes.length; i++) {
-            int offset = offsets[i].getPacketOffset();
+            int offset = offsets[i];
             // TODO вынести
             if (udp_header.position() < udp_header.limit()) {
                 final int copied = Integer.min(udp_header.remaining(), bytes[i].length - offset);

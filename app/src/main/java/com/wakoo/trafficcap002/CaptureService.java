@@ -61,16 +61,23 @@ public class CaptureService extends VpnService {
     }
 
     @Override
-    public boolean onUnbind(Intent intent) {
-        return false;
-    }
-
-    @Override
     public void onDestroy() {
-        if (sock_thread != null)
+        if (sock_thread != null) {
             sock_thread.interrupt();
-        if (desc_thread != null)
+            try {
+                sock_thread.join();
+            } catch (
+                    InterruptedException ignored) {
+            }
+        }
+        if (desc_thread != null) {
             desc_thread.interrupt();
+            try {
+                desc_thread.join();
+            } catch (
+                    InterruptedException ignored) {
+            }
+        }
         try {
             if (pfd != null)
                 pfd.close();
@@ -81,6 +88,5 @@ public class CaptureService extends VpnService {
     }
 
     public class CaptureServiceBinder extends Binder {
-
     }
 }

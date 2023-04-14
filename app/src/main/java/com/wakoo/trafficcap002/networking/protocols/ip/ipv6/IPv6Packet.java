@@ -1,7 +1,7 @@
 package com.wakoo.trafficcap002.networking.protocols.ip.ipv6;
 
-import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.ip.BadIPPacketException;
+import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;

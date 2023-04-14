@@ -3,8 +3,8 @@ package com.wakoo.trafficcap002.networking.protocols.ip.ipv4;
 import android.util.Log;
 
 import com.wakoo.trafficcap002.networking.ChecksumComputer;
-import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.ip.BadIPPacketException;
+import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;

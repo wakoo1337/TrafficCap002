@@ -7,8 +7,7 @@ import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import com.wakoo.trafficcap002.CaptureService;
-import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
-import com.wakoo.trafficcap002.networking.protocols.ip.BadIPPacketException;
+import com.wakoo.trafficcap002.networking.PcapWriter;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4BufferConsumer;
 import com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPDatagramConsumer;
 
@@ -36,23 +35,29 @@ public class SocketsListener implements Runnable {
         try (Selector selector = Selector.open()) {
             this.selector = selector;
             final FileOutputStream out = new FileOutputStream(fd);
-            final TCPDatagramConsumer tcp = new TCPDatagramConsumer();
-            final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, out, tcp);
-            while (!Thread.currentThread().isInterrupted()) {
-                selector.select();
-                while (!packets_queue.isEmpty()) {
-                    final ByteBuffer packet_buffer;
-                    packet_buffer = packets_queue.poll();
-                    final int protocol = Byte.toUnsignedInt(packet_buffer.get(0)) >>> 4;
-                    switch (protocol) {
-                        case PROTOCOL_IPv4:
-                            ipv4_consumer.accept(packet_buffer);
-                            break;
-                        case PROTOCOL_IPv6:
+            try (PcapWriter writer = new PcapWriter(cap_svc, "packets_dump" + ".cap")) {
+                final TCPDatagramConsumer tcp = new TCPDatagramConsumer(selector, out, writer);
+                final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, out, tcp);
+                while (!Thread.currentThread().isInterrupted()) {
+                    selector.select();
+                    while (!packets_queue.isEmpty()) {
+                        final ByteBuffer packet_buffer;
+                        packet_buffer = packets_queue.poll();
+                        writer.writePacket(packet_buffer.array(), packet_buffer.limit());
+                        final int protocol = Byte.toUnsignedInt(packet_buffer.get(0)) >>> 4;
+                        switch (protocol) {
+                            case PROTOCOL_IPv4:
+                                ipv4_consumer.accept(packet_buffer);
+                                break;
+                            case PROTOCOL_IPv6:
 
-                            break;
+                                break;
+                        }
                     }
                 }
+            } catch (
+                    Exception exception) {
+                Log.e("Запись пакетов в файл", "Перехвачено исключение", exception);
             }
         } catch (
                 IOException ioexcp) {
@@ -65,9 +70,5 @@ public class SocketsListener implements Runnable {
         packets_queue.add(bb);
         if (selector != null)
             selector.wakeup();
-    }
-
-    private interface PacketProcessorFactory {
-        IPPacket make(ByteBuffer packet) throws BadIPPacketException;
     }
 }

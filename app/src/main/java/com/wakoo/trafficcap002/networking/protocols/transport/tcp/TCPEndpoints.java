@@ -1,6 +1,7 @@
 package com.wakoo.trafficcap002.networking.protocols.transport.tcp;
 
 import androidx.annotation.Nullable;
+
 import java.net.InetSocketAddress;
 
 public class TCPEndpoints {
@@ -29,7 +30,7 @@ public class TCPEndpoints {
     public boolean equals(@Nullable Object o) {
         if (o instanceof TCPEndpoints) {
             TCPEndpoints endpoints = (TCPEndpoints) o;
-            return endpoints.getSite().equals(getSite()) && endpoints.getApplication().equals(getApplication());
+            return endpoints.getSite().equals(this.getSite()) && endpoints.getApplication().equals(this.getApplication());
         } else
             return false;
     }

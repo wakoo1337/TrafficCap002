@@ -1,11 +1,5 @@
 package com.wakoo.trafficcap002;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -16,11 +10,42 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AppCompatActivity;
+
 public class MainActivity extends AppCompatActivity {
     private Button start_button, stop_button;
     private TextView status_view;
     private EditText appcapture_edit;
     private CaptureService.CaptureServiceBinder binder;
+    private boolean connected = false;
+    private final ServiceConnection capture_connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            binder = (CaptureService.CaptureServiceBinder) service;
+            status_view.setText(R.string.connected_message);
+            connected = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            binder = null;
+            unbindService(this);
+            status_view.setText(R.string.unbound_message);
+            connected = false;
+        }
+
+        @Override
+        public void onNullBinding(ComponentName name) {
+            binder = null;
+            unbindService(this);
+            status_view.setText(R.string.nullbind_message);
+            connected = false;
+        }
+    };
     private final ActivityResultLauncher<Intent> capture_launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
         @Override
         public void onActivityResult(ActivityResult result) {
@@ -31,28 +56,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     });
-    private final ServiceConnection capture_connection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            binder = (CaptureService.CaptureServiceBinder) service;
-            status_view.setText(R.string.connected_message);
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            binder = null;
-            unbindService(this);
-            status_view.setText(R.string.unbound_message);
-        }
-
-        @Override
-        public void onNullBinding(ComponentName name) {
-            binder = null;
-            unbindService(this);
-            status_view.setText(R.string.nullbind_message);
-        }
-    };
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,18 +82,20 @@ public class MainActivity extends AppCompatActivity {
         stop_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                unbindService(capture_connection);
+                stopService(new Intent(MainActivity.this, CaptureService.class));
             }
         });
     }
 
     private void startVpn() {
         Intent start_intent;
-        start_intent = new Intent(this, CaptureService.class);
-        final String capture = appcapture_edit.getText().toString();
-        if (!capture.isEmpty()) {
-            start_intent.putExtra(CaptureService.APP_TO_LISTEN, capture);
+        if (!connected) {
+            start_intent = new Intent(this, CaptureService.class);
+            final String capture = appcapture_edit.getText().toString().trim();
+            if (!capture.isEmpty()) {
+                start_intent.putExtra(CaptureService.APP_TO_LISTEN, capture);
+            }
+            bindService(start_intent, capture_connection, BIND_AUTO_CREATE | BIND_ABOVE_CLIENT);
         }
-        bindService(start_intent, capture_connection, BIND_AUTO_CREATE | BIND_ABOVE_CLIENT);
     }
 }

@@ -11,10 +11,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class DescriptorListener implements Runnable {
+    public static final int INTERFACE_MTU = 8192;
     private final FileDescriptor fd;
     private final SocketsListener sock_listener;
     private final CaptureService cap_svc;
-    public static final int INTERFACE_MTU = 8192;
 
     public DescriptorListener(CaptureService cap_svc, ParcelFileDescriptor pfd, SocketsListener sock_listener) {
         this.cap_svc = cap_svc;

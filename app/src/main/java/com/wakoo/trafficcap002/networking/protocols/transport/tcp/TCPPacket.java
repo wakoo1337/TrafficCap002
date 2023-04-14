@@ -1,9 +1,9 @@
 package com.wakoo.trafficcap002.networking.protocols.transport.tcp;
 
 import com.wakoo.trafficcap002.networking.ChecksumComputer;
+import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.transport.BadDatagramException;
 import com.wakoo.trafficcap002.networking.protocols.transport.Datagram;
-import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -18,7 +18,10 @@ public class TCPPacket implements IPPacket, Datagram {
     public static final int POS_RST = 3;
     public static final int POS_SYN = 4;
     public static final int POS_FIN = 5;
-
+    private static final byte OPTION_END = 0;
+    private static final byte OPTION_NOOP = 1;
+    private static final byte OPTION_MSS = 2;
+    private static final byte OPTION_WINSCALE = 3;
     private final IPPacket parent;
     private final int src_port, dst_port;
     private final int seq, ack;
@@ -26,10 +29,8 @@ public class TCPPacket implements IPPacket, Datagram {
     private final int window;
     private final int urgent;
     private final ByteBuffer payload;
-    private final boolean mss_present, scale_present;
-    private final int mss, scale;
-
-    private TCPPacket(IPPacket parent, int src_port, int dst_port, int seq, int ack, boolean[] flags, int window, int urgent, ByteBuffer payload, boolean mss_present, int mss, boolean scale_present, int scale) {
+    private final TCPOption mss, scale;
+    private TCPPacket(IPPacket parent, int src_port, int dst_port, int seq, int ack, boolean[] flags, int window, int urgent, ByteBuffer payload, TCPOption mss, TCPOption scale) {
         this.parent = parent;
         this.src_port = src_port;
         this.dst_port = dst_port;
@@ -39,16 +40,9 @@ public class TCPPacket implements IPPacket, Datagram {
         this.window = window;
         this.urgent = urgent;
         this.payload = payload;
-        this.mss_present = mss_present;
         this.mss = mss;
-        this.scale_present = scale_present;
         this.scale = scale;
     }
-
-    private static final byte OPTION_END = 0;
-    private static final byte OPTION_NOOP = 1;
-    private static final byte OPTION_MSS = 2;
-    private static final byte OPTION_WINSCALE = 3;
 
     public static TCPPacket of(IPPacket parent) throws BadDatagramException {
         try {
@@ -87,9 +81,9 @@ public class TCPPacket implements IPPacket, Datagram {
             datagram.position(20);
             boolean end_not_reached = true;
             boolean mss_present = false;
-            int mss = (parent.getDestinationAddress() instanceof Inet6Address) ? 1280 : 576;
+            TCPOption mss = new TCPOption((parent.getDestinationAddress() instanceof Inet6Address) ? 1280 : 576, false);
             boolean scale_present = false;
-            int scale = 0;
+            TCPOption scale = new TCPOption(0, false);
             while (end_not_reached && (datagram.position() < (4 * data_offset))) {
                 final byte kind;
                 kind = datagram.get();
@@ -103,8 +97,7 @@ public class TCPPacket implements IPPacket, Datagram {
                             final int mss_len;
                             mss_len = Byte.toUnsignedInt(datagram.get());
                             checkOptionAllowed(datagram.position(), data_offset, mss_len, 4);
-                            mss_present = true;
-                            mss = Short.toUnsignedInt(datagram.getShort());
+                            mss = new TCPOption(Short.toUnsignedInt(datagram.getShort()), true);
                         } else
                             throw new BadDatagramException("Опция MSS встречается более 1 раза");
                         break;
@@ -114,7 +107,7 @@ public class TCPPacket implements IPPacket, Datagram {
                             scale_len = Byte.toUnsignedInt(datagram.get());
                             checkOptionAllowed(datagram.position(), data_offset, scale_len, 3);
                             scale_present = true;
-                            scale = Byte.toUnsignedInt(datagram.get());
+                            scale = new TCPOption(Byte.toUnsignedInt(datagram.get()), true);
                         } else
                             throw new BadDatagramException("Опция масштабирования окна встречается более 1 раза");
                         break;
@@ -127,7 +120,7 @@ public class TCPPacket implements IPPacket, Datagram {
                 }
             }
             datagram.position(0);
-            return new TCPPacket(parent, src_port, dst_port, seq, ack, flags, window, urgent, payload, mss_present, mss, scale_present, scale);
+            return new TCPPacket(parent, src_port, dst_port, seq, ack, flags, window, urgent, payload, mss, scale);
         } catch (
                 IndexOutOfBoundsException indexexcp) {
             throw new BadDatagramException("Пакет не содержит необходимых данных", indexexcp);
@@ -202,19 +195,11 @@ public class TCPPacket implements IPPacket, Datagram {
         return urgent;
     }
 
-    public boolean getMSSPresent() {
-        return mss_present;
-    }
-
-    public int getMSS() {
+    public TCPOption getMSS() {
         return mss;
     }
 
-    public boolean getScalePresent() {
-        return scale_present;
-    }
-
-    public int getScale() {
+    public TCPOption getScale() {
         return scale;
     }
 }

@@ -18,6 +18,24 @@ public class ChecksumComputer implements Cloneable {
         this.phase = phase;
     }
 
+    private static int fold32(long x) {
+        while ((x >>> 32) != 0) {
+            final long hi = x >>> 32;
+            final long lo = x & 0xFFFFFFFFL;
+            x = hi + lo;
+        }
+        return (int) x;
+    }
+
+    private static int fold16(int x) {
+        while ((x >>> 16) != 0) {
+            final int hi = (x >>> 16) & 0xFFFF;
+            final int lo = x & 0xFFFF;
+            x = hi + lo;
+        }
+        return x;
+    }
+
     public ChecksumComputer moreData(ByteBuffer bb) {
         byte restore;
         if (phase)
@@ -46,24 +64,6 @@ public class ChecksumComputer implements Cloneable {
 
     public int get() {
         return (~acc) & 0xFFFF;
-    }
-
-    private static int fold32(long x) {
-        while ((x >>> 32) != 0) {
-            final long hi = x >>> 32;
-            final long lo = x & 0xFFFFFFFFL;
-            x = hi + lo;
-        }
-        return (int) x;
-    }
-
-    private static int fold16(int x) {
-        while ((x >>> 16) != 0) {
-            final int hi = (x >>> 16) & 0xFFFF;
-            final int lo = x & 0xFFFF;
-            x = hi + lo;
-        }
-        return x;
     }
 
     @NonNull
