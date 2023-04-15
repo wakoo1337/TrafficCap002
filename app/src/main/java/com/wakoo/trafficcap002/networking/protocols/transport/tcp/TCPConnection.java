@@ -91,7 +91,8 @@ public class TCPConnection implements ConnectionState {
                     channel.finishConnect();
                     state = new SuccessfullyConnected();
                     state.doPeriodic();
-                } catch (IOException ioexcp) {
+                } catch (
+                        IOException ioexcp) {
                     // TODO ответить через ICMP, что невозможно подключиться
                 }
             }

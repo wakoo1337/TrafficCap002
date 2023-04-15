@@ -30,6 +30,7 @@ public class TCPPacket implements IPPacket, Datagram {
     private final int urgent;
     private final ByteBuffer payload;
     private final TCPOption mss, scale;
+
     private TCPPacket(IPPacket parent, int src_port, int dst_port, int seq, int ack, boolean[] flags, int window, int urgent, ByteBuffer payload, TCPOption mss, TCPOption scale) {
         this.parent = parent;
         this.src_port = src_port;

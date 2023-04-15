@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
             connected = false;
         }
     };
+
     private final ActivityResultLauncher<Intent> capture_launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
         @Override
         public void onActivityResult(ActivityResult result) {
@@ -82,7 +83,11 @@ public class MainActivity extends AppCompatActivity {
         stop_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                stopService(new Intent(MainActivity.this, CaptureService.class));
+                if (connected) {
+                    unbindService(capture_connection);
+                    status_view.setText(R.string.unbound_message);
+                    connected = false;
+                }
             }
         });
     }

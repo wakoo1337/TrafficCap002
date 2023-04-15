@@ -17,6 +17,7 @@ public class IPv4PacketBuilder implements IPPacketBuilder {
     private final InetAddress src, dest;
     private final DatagramBuilder builder;
     private final int ttl, proto;
+
     public IPv4PacketBuilder(InetAddress src, InetAddress dest, DatagramBuilder builder, int ttl, int proto) {
         assert (src instanceof Inet4Address) && (dest instanceof Inet4Address);
         this.src = src;

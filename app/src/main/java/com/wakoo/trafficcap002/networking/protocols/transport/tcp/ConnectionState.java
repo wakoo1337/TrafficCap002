@@ -4,6 +4,8 @@ import java.io.IOException;
 
 public interface ConnectionState {
     void consumePacket(TCPPacket packet) throws IOException;
+
     void doPeriodic() throws IOException;
+
     void processSelectionKey() throws IOException;
 }

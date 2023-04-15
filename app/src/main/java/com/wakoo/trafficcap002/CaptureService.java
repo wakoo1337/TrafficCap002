@@ -60,24 +60,23 @@ public class CaptureService extends VpnService {
         }
     }
 
+    private void stopThread(Thread thread) {
+        boolean running = true;
+        thread.interrupt();
+        while (running) {
+            try {
+                thread.join();
+                running = false;
+            } catch (
+                    InterruptedException ignored) {
+            }
+        }
+    }
+
     @Override
-    public void onDestroy() {
-        if (sock_thread != null) {
-            sock_thread.interrupt();
-            try {
-                sock_thread.join();
-            } catch (
-                    InterruptedException ignored) {
-            }
-        }
-        if (desc_thread != null) {
-            desc_thread.interrupt();
-            try {
-                desc_thread.join();
-            } catch (
-                    InterruptedException ignored) {
-            }
-        }
+    public boolean onUnbind(Intent intent) {
+        stopThread(sock_thread);
+        stopThread(desc_thread);
         try {
             if (pfd != null)
                 pfd.close();
@@ -85,6 +84,7 @@ public class CaptureService extends VpnService {
                 IOException ioexcp) {
             Log.e("Остановка службы", "Невозможно закрыть дескриптор", ioexcp);
         }
+        return false;
     }
 
     public class CaptureServiceBinder extends Binder {
