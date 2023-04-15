@@ -50,7 +50,6 @@ public class TCPConnection implements ConnectionState {
         wanted_seq = packet.getSeq() + 1;
         our_seq = ThreadLocalRandom.current().nextInt() ^ endpoints.hashCode() ^ ((int) System.nanoTime());
         state = new StateSynRecieved();
-        state.doPeriodic();
     }
 
     @Override
