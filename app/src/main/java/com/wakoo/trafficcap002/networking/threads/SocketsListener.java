@@ -9,12 +9,14 @@ import android.util.Log;
 import com.wakoo.trafficcap002.CaptureService;
 import com.wakoo.trafficcap002.networking.PcapWriter;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4BufferConsumer;
+import com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPConnection;
 import com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPDatagramConsumer;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -52,6 +54,21 @@ public class SocketsListener implements Runnable {
                             case PROTOCOL_IPv6:
 
                                 break;
+                        }
+                    }
+                    for (final SelectionKey sel_key : selector.selectedKeys()) {
+                        final Object attachment = sel_key.attachment();
+                        if (attachment instanceof TCPConnection) {
+                            final TCPConnection connection = (TCPConnection) attachment;
+                            connection.processSelectionKey();
+                        }
+                    }
+                    selector.selectedKeys().clear();
+                    for (final SelectionKey key : selector.keys()) {
+                        final Object attachment = key.attachment();
+                        if (attachment instanceof TCPConnection) {
+                            final TCPConnection connection = (TCPConnection) attachment;
+                            connection.doPeriodic();
                         }
                     }
                 }

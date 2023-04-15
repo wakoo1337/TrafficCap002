@@ -7,6 +7,7 @@ import static java.nio.channels.SelectionKey.OP_CONNECT;
 import com.wakoo.trafficcap002.networking.PcapWriter;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacketBuilder;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
+import com.wakoo.trafficcap002.networking.protocols.transport.Periodic;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,7 +27,7 @@ public class TCPConnection implements ConnectionState {
     private final SelectionKey key;
     private final FileOutputStream out;
     private final PcapWriter writer;
-    private final List<ByteBuffer> site_queue;
+    private final List<ByteBuffer> site_queue; // Очередь отправки на удалённый сайт
     private final int wanted_seq; // SEQ пакета, получение которого ожидается. В наших пакетах будет как ACK.
     private int our_seq; // SEQ следующего отправленного нами пакета
     private ConnectionState state;
@@ -45,6 +46,7 @@ public class TCPConnection implements ConnectionState {
         this.mss = packet.getMSS();
         this.scale = new TCPOption(0, packet.getScale().getPresence());
         site_queue = new LinkedList<>();
+        site_queue.add(packet.getPayload());
         wanted_seq = packet.getSeq() + 1;
         our_seq = ThreadLocalRandom.current().nextInt() ^ endpoints.hashCode() ^ ((int) System.nanoTime());
         state = new StateSynRecieved();
@@ -61,6 +63,11 @@ public class TCPConnection implements ConnectionState {
         state.doPeriodic();
     }
 
+    @Override
+    public void processSelectionKey() throws IOException {
+        state.processSelectionKey();
+    }
+
     private int getOurRecieveWindow() {
         int window = 131072;
         for (ByteBuffer bb : site_queue)
@@ -68,7 +75,37 @@ public class TCPConnection implements ConnectionState {
         return Integer.max(Integer.min(65535, window), 0);
     }
 
-    private class StateSynRecieved implements ConnectionState {
+    private final class StateSynRecieved extends Periodic implements ConnectionState {
+        // Принят пакет SYN. Нужно соединиться с удалённым сайтом и уведомить об этом приложение.
+
+        @Override
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+
+        }
+
+        @Override
+        public void processSelectionKey() throws IOException {
+            if (key.isConnectable()) {
+                final SocketChannel channel = (SocketChannel) key.channel();
+                try {
+                    channel.finishConnect();
+                    state = new SuccessfullyConnected();
+                    state.doPeriodic();
+                } catch (IOException ioexcp) {
+                    // TODO ответить через ICMP, что невозможно подключиться
+                }
+            }
+        }
+
+        @Override
+        protected void periodicAction() throws IOException {
+
+        }
+    }
+
+    private final class SuccessfullyConnected extends Periodic implements ConnectionState {
+        // Соединено с удалённым сайтом. Нужно уведомить об этом приложение и получить ответ.
+
         @Override
         public void consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq + 1))) {
@@ -93,11 +130,12 @@ public class TCPConnection implements ConnectionState {
         }
 
         @Override
-        public void doPeriodic() throws IOException {
-            answer();
+        public void processSelectionKey() throws IOException {
+
         }
 
-        private void answer() throws IOException {
+        @Override
+        protected void periodicAction() throws IOException {
             final TCPPacketBuilder tcp_builder;
             tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
                     endpoints.getApplication().getPort(),
@@ -115,14 +153,21 @@ public class TCPConnection implements ConnectionState {
         }
     }
 
-    private class StateEstablisted implements ConnectionState {
+    private final class StateEstablisted extends Periodic implements ConnectionState {
+        // Соединение установлено с обеими сторонами. Нужно перебрасывать пакеты.
+
         @Override
         public void consumePacket(TCPPacket packet) throws IOException {
 
         }
 
         @Override
-        public void doPeriodic() throws IOException {
+        public void processSelectionKey() throws IOException {
+
+        }
+
+        @Override
+        protected void periodicAction() throws IOException {
 
         }
     }

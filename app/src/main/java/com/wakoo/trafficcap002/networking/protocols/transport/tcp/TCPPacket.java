@@ -80,9 +80,7 @@ public class TCPPacket implements IPPacket, Datagram {
             payload = ((ByteBuffer) datagram.position(4 * data_offset)).slice();
             datagram.position(20);
             boolean end_not_reached = true;
-            boolean mss_present = false;
             TCPOption mss = new TCPOption((parent.getDestinationAddress() instanceof Inet6Address) ? 1280 : 576, false);
-            boolean scale_present = false;
             TCPOption scale = new TCPOption(0, false);
             while (end_not_reached && (datagram.position() < (4 * data_offset))) {
                 final byte kind;
@@ -93,7 +91,7 @@ public class TCPPacket implements IPPacket, Datagram {
                     case OPTION_NOOP:
                         break;
                     case OPTION_MSS:
-                        if (!mss_present) {
+                        if (!mss.getPresence()) {
                             final int mss_len;
                             mss_len = Byte.toUnsignedInt(datagram.get());
                             checkOptionAllowed(datagram.position(), data_offset, mss_len, 4);
@@ -102,11 +100,10 @@ public class TCPPacket implements IPPacket, Datagram {
                             throw new BadDatagramException("Опция MSS встречается более 1 раза");
                         break;
                     case OPTION_WINSCALE:
-                        if (!scale_present) {
+                        if (!scale.getPresence()) {
                             final int scale_len;
                             scale_len = Byte.toUnsignedInt(datagram.get());
                             checkOptionAllowed(datagram.position(), data_offset, scale_len, 3);
-                            scale_present = true;
                             scale = new TCPOption(Byte.toUnsignedInt(datagram.get()), true);
                         } else
                             throw new BadDatagramException("Опция масштабирования окна встречается более 1 раза");
