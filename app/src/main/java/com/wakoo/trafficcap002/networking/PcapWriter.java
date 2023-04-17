@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
 public class PcapWriter implements AutoCloseable {
-    final FileOutputStream out_stream;
-    final Instant beginning;
+    private final FileOutputStream out_stream;
+    private final Instant beginning;
 
     public PcapWriter(Context ctx, String name) throws IOException {
         out_stream = ctx.openFileOutput(name, Context.MODE_PRIVATE);
@@ -30,7 +30,7 @@ public class PcapWriter implements AutoCloseable {
     public void writePacket(byte[] packet, int len) throws IOException {
         final Instant now = LocalDateTime.now().toInstant(ZoneOffset.UTC);
         final Duration delta = Duration.between(beginning, now);
-        ByteBuffer header = ByteBuffer.allocate(16);
+        final ByteBuffer header = ByteBuffer.allocate(16);
         header.putInt((int) delta.getSeconds());
         header.putInt(delta.getNano() / 1000);
         header.putInt(len);

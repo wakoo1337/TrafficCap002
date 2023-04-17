@@ -28,10 +28,10 @@ public class TCPPacket implements IPPacket, Datagram {
     private final boolean[] flags;
     private final int window;
     private final int urgent;
-    private final ByteBuffer payload;
+    private final ByteBuffer payload, urgent_payload;
     private final TCPOption mss, scale;
 
-    private TCPPacket(IPPacket parent, int src_port, int dst_port, int seq, int ack, boolean[] flags, int window, int urgent, ByteBuffer payload, TCPOption mss, TCPOption scale) {
+    private TCPPacket(IPPacket parent, int src_port, int dst_port, int seq, int ack, boolean[] flags, int window, int urgent, ByteBuffer payload, ByteBuffer urgent_payload, TCPOption mss, TCPOption scale) {
         this.parent = parent;
         this.src_port = src_port;
         this.dst_port = dst_port;
@@ -41,6 +41,7 @@ public class TCPPacket implements IPPacket, Datagram {
         this.window = window;
         this.urgent = urgent;
         this.payload = payload;
+        this.urgent_payload = urgent_payload;
         this.mss = mss;
         this.scale = scale;
     }
@@ -78,7 +79,9 @@ public class TCPPacket implements IPPacket, Datagram {
             if (cc.get() != 0)
                 throw new BadDatagramException("Неверная контрольная сумма");
             final ByteBuffer payload;
-            payload = ((ByteBuffer) datagram.position(4 * data_offset)).slice();
+            payload = ((ByteBuffer) datagram.position((4 * data_offset) + (flags[POS_URG] ? urgent : 0))).slice();
+            final ByteBuffer urgent_payload;
+            urgent_payload = flags[POS_URG] ? (ByteBuffer) ((ByteBuffer) datagram.position(4 * data_offset)).slice().limit(urgent) : ByteBuffer.allocate(0);
             datagram.position(20);
             boolean end_not_reached = true;
             TCPOption mss = new TCPOption((parent.getDestinationAddress() instanceof Inet6Address) ? 1280 : 576, false);
@@ -118,7 +121,7 @@ public class TCPPacket implements IPPacket, Datagram {
                 }
             }
             datagram.position(0);
-            return new TCPPacket(parent, src_port, dst_port, seq, ack, flags, window, urgent, payload, mss, scale);
+            return new TCPPacket(parent, src_port, dst_port, seq, ack, flags, window, urgent, payload, urgent_payload, mss, scale);
         } catch (
                 IndexOutOfBoundsException indexexcp) {
             throw new BadDatagramException("Пакет не содержит необходимых данных", indexexcp);
@@ -163,6 +166,10 @@ public class TCPPacket implements IPPacket, Datagram {
         return payload;
     }
 
+    public ByteBuffer getUrgentPayload() {
+        return urgent_payload;
+    }
+
     @Override
     public int getSourcePort() {
         return src_port;
@@ -185,8 +192,8 @@ public class TCPPacket implements IPPacket, Datagram {
         return Arrays.copyOf(flags, flags.length);
     }
 
-    public int getWindow() {
-        return window;
+    public int getWindow(int scale) {
+        return window << scale;
     }
 
     public int getUrgent() {

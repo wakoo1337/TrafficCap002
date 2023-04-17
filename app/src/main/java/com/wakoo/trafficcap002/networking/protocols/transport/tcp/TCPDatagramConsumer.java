@@ -45,7 +45,8 @@ public class TCPDatagramConsumer implements DatagramConsumer {
             final TCPConnection connection;
             connection = connections.get(endpoints);
             if (connection != null) {
-                connection.consumePacket(tcp_packet);
+                if (tcp_packet.getFlags()[POS_RST] || connection.consumePacket(tcp_packet))
+                    connections.remove(endpoints).closeByApplication();
             } else {
                 // Соединения нет
                 if (!(tcp_packet.getFlags()[POS_RST] || tcp_packet.getFlags()[POS_SYN])) {

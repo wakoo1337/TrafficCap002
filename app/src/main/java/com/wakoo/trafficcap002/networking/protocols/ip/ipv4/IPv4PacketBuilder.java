@@ -31,8 +31,7 @@ public class IPv4PacketBuilder implements IPPacketBuilder {
     public byte[][] createPackets() {
         final int fragment_max = INTERFACE_MTU - HEADER_SIZE;
         final int datagram_size = builder.getDatagramSize();
-        final int total = datagram_size + HEADER_SIZE;
-        final int fragments_count = (total / fragment_max) + (((total % fragment_max) != 0) ? 1 : 0);
+        final int fragments_count = (datagram_size / fragment_max) + (((datagram_size % fragment_max) > 0) ? 1 : 0); // datagram_size -> total
         final byte[][] bytes = new byte[fragments_count][];
         final int[] offsets = new int[fragments_count];
         Arrays.fill(offsets, HEADER_SIZE);
@@ -42,7 +41,7 @@ public class IPv4PacketBuilder implements IPPacketBuilder {
             bytes[i] = new byte[current_length + HEADER_SIZE];
             final ByteBuffer header = (ByteBuffer) ByteBuffer.wrap(bytes[i]).limit(20);
             header.putShort((short) (69 * 256)); // IPv4 и заголовок в 20 байтов, грязный извращенец!
-            header.putShort((short) total);
+            header.putShort((short) (current_length + HEADER_SIZE));
             header.putShort(identification);
             final short flags_offset = (short) (((i < (fragments_count - 1)) ? 8192 : 0) + ((datagram_size - remaining) >>> 3));
             header.putShort(flags_offset);
