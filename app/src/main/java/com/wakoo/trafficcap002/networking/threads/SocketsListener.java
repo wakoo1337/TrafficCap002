@@ -35,10 +35,10 @@ public class SocketsListener implements Runnable {
 
     @Override
     public void run() {
-        try (Selector selector = Selector.open()) {
-            this.selector = selector;
+        try (PcapWriter writer = new PcapWriter(cap_svc, "packets_dump" + ".cap")) {
             final FileOutputStream out = new FileOutputStream(fd);
-            try (PcapWriter writer = new PcapWriter(cap_svc, "packets_dump" + ".cap")) {
+            try (Selector selector = Selector.open()) {
+                this.selector = selector;
                 final TCPDatagramConsumer tcp = new TCPDatagramConsumer(selector, out, writer);
                 final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, out, tcp);
                 while (!Thread.currentThread().isInterrupted()) {
@@ -74,13 +74,13 @@ public class SocketsListener implements Runnable {
                     }
                 }
             } catch (
-                    Exception exception) {
-                Log.e("Запись пакетов в файл", "Перехвачено исключение", exception);
+                    IOException ioexcp) {
+                Log.e("Прослушивание сокетов", "Исключение селектора", ioexcp);
+                cap_svc.stopSelf();
             }
         } catch (
-                IOException ioexcp) {
-            Log.e("Прослушивание сокетов", "Исключение селектора", ioexcp);
-            cap_svc.stopSelf();
+                Exception exception) {
+            Log.e("Запись пакетов в файл", "Перехвачено исключение", exception);
         }
     }
 
