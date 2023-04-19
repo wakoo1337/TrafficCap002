@@ -49,8 +49,9 @@ public class TCPSegmentData {
     }
 
     public boolean checkTimeoutExpiredThenUpdate() {
-        if (is_first || (System.nanoTime() - last_retry > Periodic.PERIODIC_NANOS)) {
-            last_retry = System.nanoTime();
+        final long now = System.nanoTime();
+        if (is_first || (now - last_retry > Periodic.PERIODIC_NANOS)) {
+            last_retry = now;
             is_first = false;
             return true;
         } else

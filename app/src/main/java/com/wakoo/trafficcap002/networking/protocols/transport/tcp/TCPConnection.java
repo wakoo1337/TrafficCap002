@@ -160,11 +160,32 @@ public class TCPConnection implements ConnectionState {
         key.channel().close();
     }
 
+    private void notifyAppFlushFinished() throws IOException {
+        final TCPPacketBuilder tcp_builder;
+        tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
+                endpoints.getApplication().getPort(),
+                ByteBuffer.allocate(0),
+                our_seq[0], wanted_seq,
+                new boolean[]{false, true, false, false, false, true},
+                0, 0,
+                zero_option_false, zero_option_false);
+        final IPPacketBuilder ip_builder;
+        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+        final byte[][] packets;
+        packets = ip_builder.createPackets();
+        for (final byte[] packet : packets) {
+            out.write(packet);
+            writer.writePacket(packet, packet.length);
+        }
+    }
+
     private final class StateSynRecieved extends Periodic implements ConnectionState {
         // Принят пакет SYN. Нужно соединиться с удалённым сайтом и уведомить об этом приложение.
 
         @Override
         public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+            if (tcp_packet.getFlags()[POS_FIN])
+                state = new StateFinWait1();
             return false;
         }
 
@@ -268,7 +289,9 @@ public class TCPConnection implements ConnectionState {
                     }
                     wanted_seq += urgent_data.limit() + payload.limit();
                 }
-                if ((app_queue.isEmpty() || (last_window == 0)) && (old_ack != wanted_seq)) {
+                if ((!app_queue.isEmpty()) && (last_window != 0))
+                    sendRemainingToApp();
+                else if ((last_window == 0) || (old_ack != wanted_seq)) {
                     final TCPPacketBuilder tcp_builder;
                     tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
                             endpoints.getApplication().getPort(),
@@ -285,8 +308,6 @@ public class TCPConnection implements ConnectionState {
                         out.write(packet);
                         writer.writePacket(packet, packet.length);
                     }
-                } else {
-                    sendRemainingToApp();
                 }
                 setInterestOptions();
             }
@@ -305,6 +326,7 @@ public class TCPConnection implements ConnectionState {
                     // Сайт разорвал соединение
                     key.channel().close();
                     state = new StateFinWait1();
+                    return;
                 } else {
                     final List<TCPSegmentData> segs;
                     segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
@@ -328,25 +350,6 @@ public class TCPConnection implements ConnectionState {
         @Override
         protected void periodicAction() throws IOException {
             sendRemainingToApp();
-        }
-    }
-
-    private void notifyAppFlushFinished() throws IOException {
-        final TCPPacketBuilder tcp_builder;
-        tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
-                endpoints.getApplication().getPort(),
-                ByteBuffer.allocate(0),
-                our_seq[0], wanted_seq,
-                new boolean[]{false, true, false, false, false, true},
-                0, 0,
-                zero_option_false, zero_option_false);
-        final IPPacketBuilder ip_builder;
-        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
-        final byte[][] packets;
-        packets = ip_builder.createPackets();
-        for (final byte[] packet : packets) {
-            out.write(packet);
-            writer.writePacket(packet, packet.length);
         }
     }
 
@@ -387,7 +390,11 @@ public class TCPConnection implements ConnectionState {
 
         @Override
         public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
-            return tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1));
+            if (tcp_packet.getFlags()[POS_FIN]) {
+                state = new StateCloseWait();
+                return false;
+            }
+            else return tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1));
         }
 
         @Override
@@ -402,10 +409,49 @@ public class TCPConnection implements ConnectionState {
     }
 
     private final class StateFinWait1 extends Periodic implements ConnectionState {
-        // Соединение разорвано сайтом
+        // Соединение разорвано сайтом. Продолжаем принимать данные от приложения, молча их отбрасывая. Когда закончим сброс данных на приложение, передаём FIN.
 
         @Override
         public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+            if (tcp_packet.getFlags()[POS_ACK]) {
+                site_queue.clear();
+                removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
+                if (app_queue.isEmpty()) {
+                    notifyAppFlushFinished();
+                    state = new StateFinWait2();
+                }
+                if (tcp_packet.getSeq() == wanted_seq) {
+                    final ByteBuffer urgent_data;
+                    urgent_data = tcp_packet.getUrgentPayload();
+                    final ByteBuffer payload = tcp_packet.getPayload();
+                    if (tcp_packet.getFlags()[POS_FIN]) {
+                        wanted_seq++; // FIN, как и SYN, увеличивает номер последовательности на единицу
+                        state = new StateCloseWait();
+                        key.channel().close();
+                    }
+                    wanted_seq += urgent_data.limit() + payload.limit();
+                }
+                if (last_window == 0) {
+                    final TCPPacketBuilder tcp_builder;
+                    tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
+                            endpoints.getApplication().getPort(),
+                            ByteBuffer.allocate(0),
+                            our_seq[0], wanted_seq,
+                            new boolean[]{false, true, false, false, false, false},
+                            getOurRecieveWindow(), 0,
+                            zero_option_false, zero_option_false);
+                    final IPPacketBuilder ip_builder;
+                    ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+                    final byte[][] packets;
+                    packets = ip_builder.createPackets();
+                    for (final byte[] packet : packets) {
+                        out.write(packet);
+                        writer.writePacket(packet, packet.length);
+                    }
+                } else {
+                    sendRemainingToApp();
+                }
+            }
             return false;
         }
 
@@ -416,7 +462,29 @@ public class TCPConnection implements ConnectionState {
 
         @Override
         protected void periodicAction() throws IOException {
+            if (app_queue.isEmpty()) {
+                notifyAppFlushFinished();
+                state = new StateFinWait2();
+            }
+        }
+    }
 
+    private final class StateFinWait2 extends Periodic implements ConnectionState {
+        // Данные закончились. Отправляем FIN и ждём ответа
+
+        @Override
+        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+            return tcp_packet.getFlags()[POS_FIN];
+        }
+
+        @Override
+        public void processSelectionKey() throws IOException {
+
+        }
+
+        @Override
+        protected void periodicAction() throws IOException {
+            notifyAppFlushFinished();
         }
     }
 }
