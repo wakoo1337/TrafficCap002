@@ -107,6 +107,8 @@ public class TCPConnection implements ConnectionState {
 
     private void removeConfirmedSegments(int new_ack, int new_window) {
         final Iterator<TCPSegmentData> seg_iterator;
+        if (new_ack == last_acknowledged)
+            last_window = new_window;
         seg_iterator = app_queue.iterator();
         int i = 0;
         while (seg_iterator.hasNext()) {
@@ -329,11 +331,39 @@ public class TCPConnection implements ConnectionState {
         }
     }
 
+    private void notifyAppFlushFinished() throws IOException {
+        final TCPPacketBuilder tcp_builder;
+        tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
+                endpoints.getApplication().getPort(),
+                ByteBuffer.allocate(0),
+                our_seq[0], wanted_seq,
+                new boolean[]{false, true, false, false, false, true},
+                0, 0,
+                zero_option_false, zero_option_false);
+        final IPPacketBuilder ip_builder;
+        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+        final byte[][] packets;
+        packets = ip_builder.createPackets();
+        for (final byte[] packet : packets) {
+            out.write(packet);
+            writer.writePacket(packet, packet.length);
+        }
+    }
+
     private final class StateCloseWait extends Periodic implements ConnectionState {
-        // Получен FIN-пакет от приложения. Нужно прекратить приём данных от приложения, закончить отправку на приложение и отослать FIN самим.
+        // Получен FIN-пакет от приложения. Нужно закончить отправку на приложение и отослать FIN самим.
 
         @Override
-        public boolean consumePacket(TCPPacket packet) throws IOException {
+        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+            if (tcp_packet.getFlags()[POS_ACK]) {
+                removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
+                if (app_queue.isEmpty()) {
+                    notifyAppFlushFinished();
+                    state = new StateLastAck();
+                } else {
+                    sendRemainingToApp();
+                }
+            }
             return false;
         }
 
@@ -344,7 +374,30 @@ public class TCPConnection implements ConnectionState {
 
         @Override
         protected void periodicAction() throws IOException {
+            if (app_queue.isEmpty()) {
+                notifyAppFlushFinished();
+                state = new StateLastAck();
+            } else
+                sendRemainingToApp();
+        }
+    }
 
+    private final class StateLastAck extends Periodic implements ConnectionState {
+        // Ожидание подтверждения закрытия соединения
+
+        @Override
+        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+            return tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1));
+        }
+
+        @Override
+        public void processSelectionKey() throws IOException {
+
+        }
+
+        @Override
+        protected void periodicAction() throws IOException {
+            notifyAppFlushFinished();
         }
     }
 
@@ -352,7 +405,7 @@ public class TCPConnection implements ConnectionState {
         // Соединение разорвано сайтом
 
         @Override
-        public boolean consumePacket(TCPPacket packet) throws IOException {
+        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
             return false;
         }
 
