@@ -16,8 +16,7 @@ public abstract class Periodic {
     }
 
     public final void doPeriodic() throws IOException {
-        final long now = System.nanoTime();
-        if (first_time || (Long.compareUnsigned(last + PERIODIC_NANOS, now) < 0)) {
+        if (first_time || (System.nanoTime() - last > PERIODIC_NANOS)) {
             first_time = false;
             periodicAction();
             update();

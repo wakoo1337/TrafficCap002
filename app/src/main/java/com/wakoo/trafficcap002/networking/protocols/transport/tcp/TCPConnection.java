@@ -238,21 +238,25 @@ public class TCPConnection implements ConnectionState {
                 last_acknowledged = tcp_packet.getAck();
                 last_window = tcp_packet.getWindow(rx_scale.getValue());
                 removeConfirmedSegments();
-                final TCPPacketBuilder tcp_builder;
-                tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
-                        endpoints.getApplication().getPort(),
-                        ByteBuffer.allocate(0),
-                        our_seq[0], wanted_seq,
-                        new boolean[]{false, true, false, false, false, false},
-                        getOurRecieveWindow(), 0,
-                        zero_option_false, zero_option_false);
-                final IPPacketBuilder ip_builder;
-                ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
-                final byte[][] packets;
-                packets = ip_builder.createPackets();
-                for (final byte[] packet : packets) {
-                    out.write(packet);
-                    writer.writePacket(packet, packet.length);
+                if (app_queue.isEmpty()) {
+                    final TCPPacketBuilder tcp_builder;
+                    tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
+                            endpoints.getApplication().getPort(),
+                            ByteBuffer.allocate(0),
+                            our_seq[0], wanted_seq,
+                            new boolean[]{false, true, false, false, false, false},
+                            getOurRecieveWindow(), 0,
+                            zero_option_false, zero_option_false);
+                    final IPPacketBuilder ip_builder;
+                    ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+                    final byte[][] packets;
+                    packets = ip_builder.createPackets();
+                    for (final byte[] packet : packets) {
+                        out.write(packet);
+                        writer.writePacket(packet, packet.length);
+                    }
+                } else {
+                    periodicAction();
                 }
                 setInterestOptions();
             }
@@ -282,14 +286,9 @@ public class TCPConnection implements ConnectionState {
                 while (iterator.hasNext()) {
                     final ByteBuffer current;
                     current = iterator.next();
-                    final int written;
-                    written = ((SocketChannel) key.channel()).write(current);
+                    ((SocketChannel) key.channel()).write(current);
                     if (!current.hasRemaining())
                         iterator.remove();
-                    if (written == -1) {
-                        // Сайт разорвал соединение
-                        key.channel().close();
-                    }
                 }
             }
             setInterestOptions();
@@ -302,7 +301,7 @@ public class TCPConnection implements ConnectionState {
             while (seg_iterator.hasNext()) {
                 final TCPSegmentData seg;
                 seg = seg_iterator.next();
-                if (seg.checkTimeoutExpiredThenUpdate()) {
+                if (seg.checkTimeoutExpiredThenUpdate() && ((seg.getSequenceNumber() + seg.getSegmentLength()) < (last_acknowledged + last_window))) {
                     final TCPPacketBuilder tcp_builder;
                     tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
                             endpoints.getApplication().getPort(),

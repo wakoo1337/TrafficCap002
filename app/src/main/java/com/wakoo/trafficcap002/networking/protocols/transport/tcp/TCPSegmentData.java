@@ -9,12 +9,14 @@ import java.util.List;
 public class TCPSegmentData {
     private final ByteBuffer data;
     private final int seq;
-    private long last;
+    private long last_retry;
+    private boolean is_first;
 
     private TCPSegmentData(ByteBuffer data, int seq) {
         this.data = data;
         this.seq = seq;
-        this.last = System.nanoTime();
+        this.last_retry = System.nanoTime();
+        this.is_first = true;
     }
 
     public static List<TCPSegmentData> makeSegments(ByteBuffer data, int[] seq, int mss) {
@@ -47,8 +49,9 @@ public class TCPSegmentData {
     }
 
     public boolean checkTimeoutExpiredThenUpdate() {
-        if (Long.compareUnsigned(last + Periodic.PERIODIC_NANOS, System.nanoTime()) < 0) {
-            last = System.nanoTime();
+        if (is_first || (System.nanoTime() - last_retry > Periodic.PERIODIC_NANOS)) {
+            last_retry = System.nanoTime();
+            is_first = false;
             return true;
         } else
             return false;

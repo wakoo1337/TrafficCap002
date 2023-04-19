@@ -31,7 +31,7 @@ public class IPv4PacketBuilder implements IPPacketBuilder {
     public byte[][] createPackets() {
         final int fragment_max = INTERFACE_MTU - HEADER_SIZE;
         final int datagram_size = builder.getDatagramSize();
-        final int fragments_count = (datagram_size / fragment_max) + (((datagram_size % fragment_max) > 0) ? 1 : 0); // datagram_size -> total
+        final int fragments_count = (datagram_size / fragment_max) + (((datagram_size % fragment_max) > 0) ? 1 : 0);
         final byte[][] bytes = new byte[fragments_count][];
         final int[] offsets = new int[fragments_count];
         Arrays.fill(offsets, HEADER_SIZE);
