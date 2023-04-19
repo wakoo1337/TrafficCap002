@@ -248,6 +248,7 @@ public class TCPConnection implements ConnectionState {
         public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK]) {
                 removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
+                final int old_ack = wanted_seq;
                 if (tcp_packet.getSeq() == wanted_seq) {
                     final ByteBuffer urgent_data;
                     urgent_data = tcp_packet.getUrgentPayload();
@@ -265,7 +266,7 @@ public class TCPConnection implements ConnectionState {
                     }
                     wanted_seq += urgent_data.limit() + payload.limit();
                 }
-                if (app_queue.isEmpty() || (last_window == 0)) {
+                if ((app_queue.isEmpty() || (last_window == 0)) && (old_ack != wanted_seq)) {
                     final TCPPacketBuilder tcp_builder;
                     tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
                             endpoints.getApplication().getPort(),
