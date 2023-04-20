@@ -24,6 +24,7 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class TCPConnection implements ConnectionState {
@@ -35,6 +36,7 @@ public class TCPConnection implements ConnectionState {
     private final SelectionKey key;
     private final FileOutputStream out;
     private final PcapWriter writer;
+    private final Map<TCPEndpoints, TCPConnection> connections;
     private final List<ByteBuffer> site_queue; // Очередь отправки на удалённый сайт
     private final List<TCPSegmentData> app_queue; // Очередь отправки на приложение
     private final int[] our_seq; // SEQ следующего отправленного нами пакета
@@ -43,7 +45,7 @@ public class TCPConnection implements ConnectionState {
     private int last_window; // Масштабированное последнее значение окна. Вместе с предыдущим параметром используется для оценки возможности отправки сегментов.
     private ConnectionState state;
 
-    public TCPConnection(TCPPacket packet, TCPEndpoints endpoints, Selector selector, FileOutputStream out, PcapWriter writer) throws IOException {
+    public TCPConnection(Map<TCPEndpoints, TCPConnection> connections, TCPPacket packet, TCPEndpoints endpoints, Selector selector, FileOutputStream out, PcapWriter writer) throws IOException {
         this.endpoints = endpoints;
         final SocketChannel channel = SocketChannel.open();
         channel.configureBlocking(false);
@@ -53,6 +55,7 @@ public class TCPConnection implements ConnectionState {
         channel.connect(endpoints.getSite());
         this.key = channel.register(selector, OP_CONNECT, this);
         this.out = out;
+        this.connections = connections;
         this.writer = writer;
         this.mss = packet.getMSS();
         this.tx_scale = packet.getScale().getPresence() ? zero_option_true : zero_option_false;
@@ -67,9 +70,13 @@ public class TCPConnection implements ConnectionState {
         state = new StateSynRecieved();
     }
 
+    private void suicide() throws IOException {
+        connections.remove(endpoints).closeByApplication();
+    }
+
     @Override
-    public boolean consumePacket(TCPPacket packet) throws IOException {
-        return state.consumePacket(packet);
+    public void consumePacket(TCPPacket packet) throws IOException {
+        state.consumePacket(packet);
     }
 
     @Override
@@ -140,7 +147,7 @@ public class TCPConnection implements ConnectionState {
                         getOurRecieveWindow(), 0,
                         zero_option_false, zero_option_false);
                 final IPPacketBuilder ip_builder;
-                ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+                ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO IPv6
                 final byte[][] packets;
                 packets = ip_builder.createPackets();
                 for (final byte[] packet : packets) {
@@ -170,7 +177,7 @@ public class TCPConnection implements ConnectionState {
                 0, 0,
                 zero_option_false, zero_option_false);
         final IPPacketBuilder ip_builder;
-        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO IPv6
         final byte[][] packets;
         packets = ip_builder.createPackets();
         for (final byte[] packet : packets) {
@@ -183,10 +190,9 @@ public class TCPConnection implements ConnectionState {
         // Принят пакет SYN. Нужно соединиться с удалённым сайтом и уведомить об этом приложение.
 
         @Override
-        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_FIN])
                 state = new StateFinWait1();
-            return false;
         }
 
         @Override
@@ -195,7 +201,7 @@ public class TCPConnection implements ConnectionState {
                 final SocketChannel channel = (SocketChannel) key.channel();
                 try {
                     channel.finishConnect();
-                    state = new SuccessfullyConnected();
+                    state = new StateSuccessfullyConnected();
                     state.doPeriodic();
                 } catch (
                         IOException ioexcp) {
@@ -210,11 +216,11 @@ public class TCPConnection implements ConnectionState {
         }
     }
 
-    private final class SuccessfullyConnected extends Periodic implements ConnectionState {
+    private final class StateSuccessfullyConnected extends Periodic implements ConnectionState {
         // Соединено с удалённым сайтом. Нужно уведомить об этом приложение и получить ответ.
 
         @Override
-        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1))) {
                 our_seq[0]++;
                 final TCPPacketBuilder tcp_builder;
@@ -237,7 +243,6 @@ public class TCPConnection implements ConnectionState {
                 last_acknowledged = tcp_packet.getAck();
                 key.interestOps((last_window > 0) ? OP_READ : 0);
             }
-            return false;
         }
 
         @Override
@@ -268,7 +273,7 @@ public class TCPConnection implements ConnectionState {
         // Соединение установлено с обеими сторонами. Нужно перебрасывать пакеты.
 
         @Override
-        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK]) {
                 removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
                 final int old_ack = wanted_seq;
@@ -301,7 +306,7 @@ public class TCPConnection implements ConnectionState {
                             getOurRecieveWindow(), 0,
                             zero_option_false, zero_option_false);
                     final IPPacketBuilder ip_builder;
-                    ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+                    ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO IPv6
                     final byte[][] packets;
                     packets = ip_builder.createPackets();
                     for (final byte[] packet : packets) {
@@ -309,9 +314,8 @@ public class TCPConnection implements ConnectionState {
                         writer.writePacket(packet, packet.length);
                     }
                 }
-                setInterestOptions();
             }
-            return false;
+            setInterestOptions();
         }
 
         @Override
@@ -320,31 +324,64 @@ public class TCPConnection implements ConnectionState {
                 final ByteBuffer data;
                 final int readed;
                 data = ByteBuffer.allocate(65536);
-                readed = ((SocketChannel) key.channel()).read(data);
-                data.flip();
-                if (readed == -1) {
-                    // Сайт разорвал соединение
-                    key.channel().close();
-                    state = new StateFinWait1();
-                    return;
-                } else {
-                    final List<TCPSegmentData> segs;
-                    segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
-                    app_queue.addAll(segs);
+                try {
+                    readed = ((SocketChannel) key.channel()).read(data);
+                    data.flip();
+                    if (readed == -1) {
+                        // Сайт разорвал соединение
+                        key.channel().close();
+                        state = new StateFinWait1();
+                        return;
+                    } else {
+                        final List<TCPSegmentData> segs;
+                        segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
+                        app_queue.addAll(segs);
+                    }
+                } catch (
+                        IOException ioexcp) {
+                    // TODO отослать RST и суициднуться
+                    resetConnection();
+                    suicide();
                 }
             }
             if (key.isWritable()) {
                 final Iterator<ByteBuffer> iterator;
                 iterator = site_queue.iterator();
-                while (iterator.hasNext()) {
-                    final ByteBuffer current;
-                    current = iterator.next();
-                    ((SocketChannel) key.channel()).write(current);
-                    if (!current.hasRemaining())
-                        iterator.remove();
+                try {
+                    while (iterator.hasNext()) {
+                        final ByteBuffer current;
+                        current = iterator.next();
+                        ((SocketChannel) key.channel()).write(current);
+                        if (!current.hasRemaining())
+                            iterator.remove();
+                    }
+                } catch (
+                        IOException ioexcp) {
+                    // TODO отослать RST и суициднуться
+                    resetConnection();
+                    suicide();
                 }
             }
             setInterestOptions();
+        }
+
+        private void resetConnection() throws IOException {
+            final TCPPacketBuilder tcp_builder;
+            tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
+                    endpoints.getApplication().getPort(),
+                    ByteBuffer.allocate(0),
+                    our_seq[0], wanted_seq,
+                    new boolean[]{false, true, false, true, false, false},
+                    0, 0,
+                    zero_option_false, zero_option_false);
+            final IPPacketBuilder ip_builder;
+            ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO IPv6
+            final byte[][] packets;
+            packets = ip_builder.createPackets();
+            for (final byte[] packet : packets) {
+                out.write(packet);
+                writer.writePacket(packet, packet.length);
+            }
         }
 
         @Override
@@ -357,7 +394,7 @@ public class TCPConnection implements ConnectionState {
         // Получен FIN-пакет от приложения. Нужно закончить отправку на приложение и отослать FIN самим.
 
         @Override
-        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK]) {
                 removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
                 if (app_queue.isEmpty()) {
@@ -367,7 +404,6 @@ public class TCPConnection implements ConnectionState {
                     sendRemainingToApp();
                 }
             }
-            return false;
         }
 
         @Override
@@ -389,12 +425,12 @@ public class TCPConnection implements ConnectionState {
         // Ожидание подтверждения закрытия соединения
 
         @Override
-        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_FIN]) {
                 state = new StateCloseWait();
-                return false;
+            } else if (tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1))) {
+                suicide();
             }
-            else return tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1));
         }
 
         @Override
@@ -412,7 +448,7 @@ public class TCPConnection implements ConnectionState {
         // Соединение разорвано сайтом. Продолжаем принимать данные от приложения, молча их отбрасывая. Когда закончим сброс данных на приложение, передаём FIN.
 
         @Override
-        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK]) {
                 site_queue.clear();
                 removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
@@ -431,7 +467,9 @@ public class TCPConnection implements ConnectionState {
                     }
                     wanted_seq += urgent_data.limit() + payload.limit();
                 }
-                if (last_window == 0) {
+                if ((!app_queue.isEmpty()) && (last_window != 0))
+                    sendRemainingToApp();
+                else {
                     final TCPPacketBuilder tcp_builder;
                     tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
                             endpoints.getApplication().getPort(),
@@ -441,18 +479,15 @@ public class TCPConnection implements ConnectionState {
                             getOurRecieveWindow(), 0,
                             zero_option_false, zero_option_false);
                     final IPPacketBuilder ip_builder;
-                    ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+                    ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO IPv6
                     final byte[][] packets;
                     packets = ip_builder.createPackets();
                     for (final byte[] packet : packets) {
                         out.write(packet);
                         writer.writePacket(packet, packet.length);
                     }
-                } else {
-                    sendRemainingToApp();
                 }
             }
-            return false;
         }
 
         @Override
@@ -465,7 +500,7 @@ public class TCPConnection implements ConnectionState {
             if (app_queue.isEmpty()) {
                 notifyAppFlushFinished();
                 state = new StateFinWait2();
-            }
+            } else if (last_window != 0) sendRemainingToApp();
         }
     }
 
@@ -473,8 +508,9 @@ public class TCPConnection implements ConnectionState {
         // Данные закончились. Отправляем FIN и ждём ответа
 
         @Override
-        public boolean consumePacket(TCPPacket tcp_packet) throws IOException {
-            return tcp_packet.getFlags()[POS_FIN];
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+            if (tcp_packet.getFlags()[POS_FIN])
+                suicide();
         }
 
         @Override

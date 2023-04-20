@@ -45,12 +45,13 @@ public class TCPDatagramConsumer implements DatagramConsumer {
             final TCPConnection connection;
             connection = connections.get(endpoints);
             if (connection != null) {
-                if (tcp_packet.getFlags()[POS_RST] || connection.consumePacket(tcp_packet))
+                if (tcp_packet.getFlags()[POS_RST])
                     connections.remove(endpoints).closeByApplication();
+                else
+                    connection.consumePacket(tcp_packet);
             } else {
                 // Соединения нет
                 if (!(tcp_packet.getFlags()[POS_RST] || tcp_packet.getFlags()[POS_SYN])) {
-                    // Тут нужно сгенерировать RESET
                     final TCPPacketBuilder tcp_builder;
                     final boolean[] rst_flag = new boolean[]{false, false, false, true, false, false};
                     tcp_builder = new TCPPacketBuilder(tcp_packet.getDestinationPort(), tcp_packet.getSourcePort(), ByteBuffer.allocate(0), 0, tcp_packet.getSeq(), rst_flag, 0, 0, new TCPOption(536, false), new TCPOption(0, false));
@@ -65,7 +66,7 @@ public class TCPDatagramConsumer implements DatagramConsumer {
                 } else if (tcp_packet.getFlags()[POS_SYN] && (!tcp_packet.getFlags()[POS_ACK]) && (!tcp_packet.getFlags()[POS_RST])) {
                     // Принимаем новое соединение
                     final TCPConnection new_connection;
-                    new_connection = new TCPConnection(tcp_packet, endpoints, this.selector, this.out, this.writer);
+                    new_connection = new TCPConnection(connections, tcp_packet, endpoints, this.selector, this.out, this.writer);
                     connections.put(endpoints, new_connection);
                 }
             }

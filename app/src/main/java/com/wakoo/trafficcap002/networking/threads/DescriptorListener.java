@@ -34,7 +34,6 @@ public class DescriptorListener implements Runnable {
         } catch (
                 IOException ioexcp) {
             Log.e("Прослушивание дескриптора", "Невозможно прочитать дескриптор", ioexcp);
-            cap_svc.stopSelf();
         }
     }
 }

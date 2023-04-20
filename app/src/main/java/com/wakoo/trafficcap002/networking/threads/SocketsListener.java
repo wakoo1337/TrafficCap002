@@ -76,7 +76,6 @@ public class SocketsListener implements Runnable {
             } catch (
                     IOException ioexcp) {
                 Log.e("Прослушивание сокетов", "Исключение селектора", ioexcp);
-                cap_svc.stopSelf();
             }
         } catch (
                 Exception exception) {
