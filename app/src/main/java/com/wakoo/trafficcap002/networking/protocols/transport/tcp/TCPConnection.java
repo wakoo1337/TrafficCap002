@@ -369,6 +369,7 @@ public class TCPConnection implements ConnectionState {
                         IOException ioexcp) {
                     resetConnection();
                     suicide();
+                    return;
                 }
             }
             if (key.isWritable()) {
@@ -386,6 +387,7 @@ public class TCPConnection implements ConnectionState {
                         IOException ioexcp) {
                     resetConnection();
                     suicide();
+                    return;
                 }
             }
             setInterestOptions();
@@ -500,50 +502,55 @@ public class TCPConnection implements ConnectionState {
 
         @Override
         public void processSelectionKey() throws IOException {
-            if (key.isReadable()) {
-                final ByteBuffer data;
-                final int readed;
-                data = ByteBuffer.allocate(65536);
-                try {
-                    readed = ((SocketChannel) key.channel()).read(data);
-                    data.flip();
-                    if (readed == -1) {
-                        // Сайт разорвал соединение
-                        key.channel().close();
-                        site_queue.clear();
-                        return;
-                    } else {
-                        final List<TCPSegmentData> segs;
-                        segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
-                        app_queue.addAll(segs);
+            if (key.isValid()) {
+                if (key.isReadable()) {
+                    final ByteBuffer data;
+                    final int readed;
+                    data = ByteBuffer.allocate(65536);
+                    try {
+                        readed = ((SocketChannel) key.channel()).read(data);
+                        data.flip();
+                        if (readed == -1) {
+                            // Сайт разорвал соединение
+                            key.channel().close();
+                            site_queue.clear();
+                            return;
+                        } else {
+                            final List<TCPSegmentData> segs;
+                            segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
+                            app_queue.addAll(segs);
+                        }
+                    } catch (
+                            IOException ioexcp) {
+                        resetConnection();
+                        suicide();
                     }
-                } catch (
-                        IOException ioexcp) {
-                    resetConnection();
-                    suicide();
                 }
-            }
-            if (key.isWritable()) {
-                final Iterator<ByteBuffer> iterator;
-                iterator = site_queue.iterator();
-                try {
-                    while (iterator.hasNext()) {
-                        final ByteBuffer current;
-                        current = iterator.next();
-                        ((SocketChannel) key.channel()).write(current);
-                        if (!current.hasRemaining())
-                            iterator.remove();
+                if (key.isWritable()) {
+                    final Iterator<ByteBuffer> iterator;
+                    iterator = site_queue.iterator();
+                    try {
+                        while (iterator.hasNext()) {
+                            final ByteBuffer current;
+                            current = iterator.next();
+                            ((SocketChannel) key.channel()).write(current);
+                            if (!current.hasRemaining())
+                                iterator.remove();
+                        }
+                    } catch (
+                            IOException ioexcp) {
+                        resetConnection();
+                        suicide();
                     }
-                } catch (
-                        IOException ioexcp) {
-                    resetConnection();
-                    suicide();
                 }
-            }
-            if (site_queue.isEmpty()) {
-                key.channel().close();
+                if (site_queue.isEmpty()) {
+                    key.channel().close();
+                } else {
+                    key.interestOps(OP_WRITE | ((last_window - getApplicationSendQueueSize()) > 0 ? OP_READ : 0));
+                }
             } else {
-                key.interestOps(OP_WRITE | ((last_window - getApplicationSendQueueSize()) > 0 ? OP_READ : 0));
+                key.cancel();
+                site_queue.clear();
             }
         }
 
