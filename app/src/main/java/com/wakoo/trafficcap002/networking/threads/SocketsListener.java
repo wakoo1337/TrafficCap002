@@ -65,13 +65,7 @@ public class SocketsListener implements Runnable {
                         }
                     }
                     selector.selectedKeys().clear();
-                    for (final SelectionKey key : selector.keys()) {
-                        final Object attachment = key.attachment();
-                        if (attachment instanceof TCPConnection) {
-                            final TCPConnection connection = (TCPConnection) attachment;
-                            connection.doPeriodic();
-                        }
-                    }
+                    tcp.doPeriodic();
                 }
             } catch (
                     IOException ioexcp) {

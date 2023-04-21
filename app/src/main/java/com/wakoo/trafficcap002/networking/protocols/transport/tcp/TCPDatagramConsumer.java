@@ -78,4 +78,10 @@ public class TCPDatagramConsumer implements DatagramConsumer {
             Log.e("Работа с TCP", "Ошибка ввода-вывода", ioexcp);
         }
     }
+
+    public void doPeriodic() throws IOException {
+        for (final TCPConnection connection : connections.values()) {
+            connection.doPeriodic();
+        }
+    }
 }
