@@ -348,49 +348,55 @@ public class TCPConnection implements ConnectionState {
 
         @Override
         public void processSelectionKey() throws IOException {
-            if (key.isReadable()) {
-                final ByteBuffer data;
-                final int readed;
-                data = ByteBuffer.allocate(65536);
-                try {
-                    readed = ((SocketChannel) key.channel()).read(data);
-                    data.flip();
-                    if (readed == -1) {
-                        // Сайт разорвал соединение
-                        key.channel().close();
-                        state = new StateFlushRemainingToApp();
+            if (key.isValid()) {
+                if (key.isReadable()) {
+                    final ByteBuffer data;
+                    final int readed;
+                    data = ByteBuffer.allocate(65536);
+                    try {
+                        readed = ((SocketChannel) key.channel()).read(data);
+                        data.flip();
+                        if (readed == -1) {
+                            // Сайт разорвал соединение
+                            key.channel().close();
+                            state = new StateFlushRemainingToApp();
+                            return;
+                        } else {
+                            final List<TCPSegmentData> segs;
+                            segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
+                            app_queue.addAll(segs);
+                        }
+                    } catch (
+                            IOException ioexcp) {
+                        resetConnection();
+                        suicide();
                         return;
-                    } else {
-                        final List<TCPSegmentData> segs;
-                        segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
-                        app_queue.addAll(segs);
                     }
-                } catch (
-                        IOException ioexcp) {
-                    resetConnection();
-                    suicide();
-                    return;
                 }
-            }
-            if (key.isWritable()) {
-                final Iterator<ByteBuffer> iterator;
-                iterator = site_queue.iterator();
-                try {
-                    while (iterator.hasNext()) {
-                        final ByteBuffer current;
-                        current = iterator.next();
-                        ((SocketChannel) key.channel()).write(current);
-                        if (!current.hasRemaining())
-                            iterator.remove();
+                if (key.isWritable()) {
+                    final Iterator<ByteBuffer> iterator;
+                    iterator = site_queue.iterator();
+                    try {
+                        while (iterator.hasNext()) {
+                            final ByteBuffer current;
+                            current = iterator.next();
+                            ((SocketChannel) key.channel()).write(current);
+                            if (!current.hasRemaining())
+                                iterator.remove();
+                        }
+                    } catch (
+                            IOException ioexcp) {
+                        resetConnection();
+                        suicide();
+                        return;
                     }
-                } catch (
-                        IOException ioexcp) {
-                    resetConnection();
-                    suicide();
-                    return;
                 }
+                setInterestOptions();
+            } else {
+                sendFin();
+                key.channel().close();
+                suicide();
             }
-            setInterestOptions();
         }
 
         @Override
@@ -439,7 +445,11 @@ public class TCPConnection implements ConnectionState {
         public void consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK]) {
                 mockDataReception(tcp_packet);
-                if (tcp_packet.getAck() == (our_seq[0] + 1)) {
+                if (tcp_packet.getFlags()[POS_FIN] && (tcp_packet.getAck() == our_seq[0])) {
+                    wanted_seq++;
+                    acknowledge();
+                    state = new StateSimultaneousClosing();
+                } else if (tcp_packet.getAck() == (our_seq[0] + 1)) {
                     our_seq[0]++;
                     state = new StateOurFinAcknowledged();
                 } else
@@ -549,7 +559,7 @@ public class TCPConnection implements ConnectionState {
                     key.interestOps(OP_WRITE | ((last_window - getApplicationSendQueueSize()) > 0 ? OP_READ : 0));
                 }
             } else {
-                key.cancel();
+                key.channel().close();
                 site_queue.clear();
             }
         }
@@ -582,6 +592,25 @@ public class TCPConnection implements ConnectionState {
         @Override
         protected void periodicAction() throws IOException {
             sendFin();
+        }
+    }
+
+    private final class StateSimultaneousClosing extends Periodic implements ConnectionState {
+        // Подтверждаем чужой ACK и ждём ответа на свой
+
+        @Override
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+            if (tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0]+1))) suicide();
+        }
+
+        @Override
+        public void processSelectionKey() throws IOException {
+
+        }
+
+        @Override
+        protected void periodicAction() throws IOException {
+            acknowledge();
         }
     }
 }
