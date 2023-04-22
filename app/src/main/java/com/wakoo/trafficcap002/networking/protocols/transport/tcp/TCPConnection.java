@@ -365,6 +365,7 @@ public class TCPConnection implements ConnectionState {
                             final List<TCPSegmentData> segs;
                             segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
                             app_queue.addAll(segs);
+                            sendRemainingToApp();
                         }
                     } catch (
                             IOException ioexcp) {
