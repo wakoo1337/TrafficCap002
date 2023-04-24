@@ -29,7 +29,10 @@ public class UDPPacketBuilder implements DatagramBuilder {
         udp_header.putShort((short) (data.limit() + 8));
         udp_header.putShort((short) 0);
         udp_header.position(0);
+        data.position(0);
         cc.moreData(udp_header).moreData(data);
+        udp_header.putShort(6, (short) cc.get());
+        udp_header.position(0);
         data.position(0);
         for (int i = 0; i < bytes.length; i++) {
             int offset = offsets[i];

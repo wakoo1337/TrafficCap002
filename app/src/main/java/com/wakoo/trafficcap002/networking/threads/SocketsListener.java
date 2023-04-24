@@ -12,6 +12,8 @@ import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4BufferConsumer;
 import com.wakoo.trafficcap002.networking.protocols.transport.Periodic;
 import com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPConnection;
 import com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPDatagramConsumer;
+import com.wakoo.trafficcap002.networking.protocols.transport.udp.UDPDatagramConsumer;
+import com.wakoo.trafficcap002.networking.protocols.transport.udp.UDPExternalPort;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
@@ -39,8 +41,16 @@ public class SocketsListener implements Runnable {
             final FileOutputStream out = new FileOutputStream(fd);
             try (Selector selector = Selector.open()) {
                 this.selector = selector;
+                final UDPDatagramConsumer udp;
+                try {
+                    udp = new UDPDatagramConsumer(selector, out, writer);
+                } catch (
+                        IOException ioexcp) {
+                    Log.e("Открытие сокета UDP", "Невозможно открыть сокет UDP", ioexcp);
+                    return;
+                }
                 final TCPDatagramConsumer tcp = new TCPDatagramConsumer(selector, out, writer);
-                final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, out, tcp);
+                final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, out, tcp, udp);
                 while (!Thread.currentThread().isInterrupted()) {
                     selector.select(Periodic.PERIODIC_NANOS / 1000000);
                     while (!packets_queue.isEmpty()) {
@@ -62,6 +72,10 @@ public class SocketsListener implements Runnable {
                         if (attachment instanceof TCPConnection) {
                             final TCPConnection connection = (TCPConnection) attachment;
                             connection.processSelectionKey();
+                        } else if (attachment instanceof UDPExternalPort) {
+                            final UDPExternalPort external;
+                            external = (UDPExternalPort) attachment;
+                            external.relayDatagram();
                         }
                     }
                     selector.selectedKeys().clear();

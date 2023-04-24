@@ -143,7 +143,7 @@ public class TCPConnection implements ConnectionState {
                         endpoints.getApplication().getPort(),
                         seg.getSegmentData(),
                         seg.getSequenceNumber(), wanted_seq,
-                        new boolean[]{false, true, true, false, false, false},
+                        new boolean[]{false, true, seg.getFlagPush(), false, false, false},
                         getOurRecieveWindow(), 0,
                         zero_option_false, zero_option_false);
                 final IPPacketBuilder ip_builder;
@@ -394,7 +394,7 @@ public class TCPConnection implements ConnectionState {
                 }
                 setInterestOptions();
             } else {
-                sendFin();
+                resetConnection();
                 key.channel().close();
                 suicide();
             }
@@ -601,7 +601,8 @@ public class TCPConnection implements ConnectionState {
 
         @Override
         public void consumePacket(TCPPacket tcp_packet) throws IOException {
-            if (tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0]+1))) suicide();
+            if (tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1)))
+                suicide();
         }
 
         @Override
