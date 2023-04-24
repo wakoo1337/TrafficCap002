@@ -1,6 +1,10 @@
 package com.wakoo.trafficcap002.networking.protocols.transport.tcp;
 
+import static com.wakoo.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_ICMP;
 import static com.wakoo.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_TCP;
+import static com.wakoo.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder.CODE_HOST_UNREACHABLE;
+import static com.wakoo.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder.CODE_PORT_UNREACHABLE;
+import static com.wakoo.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder.TYPE_DESTINATION_UNREACHABLE;
 import static com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPPacket.POS_ACK;
 import static com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPPacket.POS_FIN;
 import static java.nio.channels.SelectionKey.OP_CONNECT;
@@ -8,13 +12,20 @@ import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
 import com.wakoo.trafficcap002.networking.PcapWriter;
+import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacketBuilder;
+import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4Packet;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
+import com.wakoo.trafficcap002.networking.protocols.ip.ipv6.IPv6Packet;
 import com.wakoo.trafficcap002.networking.protocols.transport.Periodic;
+import com.wakoo.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.Inet6Address;
+import java.net.NoRouteToHostException;
+import java.net.PortUnreachableException;
 import java.net.Socket;
 import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
@@ -32,6 +43,7 @@ public class TCPConnection implements ConnectionState {
     private static final TCPOption zero_option_false = new TCPOption(0, false);
 
     private final TCPEndpoints endpoints;
+    private final TCPPacket syn_packet;
     private final TCPOption mss, tx_scale, rx_scale;
     private final SelectionKey key;
     private final FileOutputStream out;
@@ -47,6 +59,7 @@ public class TCPConnection implements ConnectionState {
 
     public TCPConnection(Map<TCPEndpoints, TCPConnection> connections, TCPPacket packet, TCPEndpoints endpoints, Selector selector, FileOutputStream out, PcapWriter writer) throws IOException {
         this.endpoints = endpoints;
+        this.syn_packet = packet;
         final SocketChannel channel = SocketChannel.open();
         channel.configureBlocking(false);
         channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
@@ -71,7 +84,9 @@ public class TCPConnection implements ConnectionState {
     }
 
     private void suicide() throws IOException {
-        connections.remove(endpoints).closeByApplication();
+        final TCPConnection connection;
+        connection = connections.remove(endpoints);
+        if (connection != null) connection.closeByApplication();
     }
 
     @Override
@@ -248,9 +263,37 @@ public class TCPConnection implements ConnectionState {
                     channel.finishConnect();
                     state = new StateSuccessfullyConnected();
                     state.doPeriodic();
+                } catch (ConnectException | NoRouteToHostException e) {
+                    final ICMPBuilder icmp_builder;
+                    icmp_builder = new ICMPBuilder(syn_packet.getParent(), TYPE_DESTINATION_UNREACHABLE, CODE_HOST_UNREACHABLE);
+                    final IPPacketBuilder ip_builder;
+                    ip_builder = (syn_packet.getParent() instanceof IPv6Packet) ?
+                            null :
+                            new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMP);
+                    final byte[][] packets;
+                    packets = ip_builder.createPackets();
+                    for (final byte[] packet : packets) {
+                        out.write(packet);
+                        writer.writePacket(packet, packet.length);
+                    }
+                    suicide();
+                } catch (PortUnreachableException e) {
+                    final ICMPBuilder icmp_builder;
+                    icmp_builder = new ICMPBuilder(syn_packet.getParent(), TYPE_DESTINATION_UNREACHABLE, CODE_PORT_UNREACHABLE);
+                    final IPPacketBuilder ip_builder;
+                    ip_builder = (syn_packet.getParent() instanceof IPv6Packet) ?
+                            null :
+                            new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMP);
+                    final byte[][] packets;
+                    packets = ip_builder.createPackets();
+                    for (final byte[] packet : packets) {
+                        out.write(packet);
+                        writer.writePacket(packet, packet.length);
+                    }
+                    suicide();
                 } catch (
                         IOException ioexcp) {
-                    // TODO ответить через ICMP, что невозможно подключиться
+                    suicide();
                 }
             }
         }

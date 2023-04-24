@@ -8,7 +8,7 @@ import com.wakoo.trafficcap002.networking.protocols.transport.Datagram;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
-public class UDPPacket implements IPPacket, Datagram {
+public class UDPPacket implements Datagram {
     private final IPPacket parent;
     private final int src_port, dst_port;
     private final ByteBuffer payload;
@@ -51,31 +51,6 @@ public class UDPPacket implements IPPacket, Datagram {
     }
 
     @Override
-    public InetAddress getSourceAddress() {
-        return parent.getSourceAddress();
-    }
-
-    @Override
-    public InetAddress getDestinationAddress() {
-        return parent.getDestinationAddress();
-    }
-
-    @Override
-    public int getProtocol() {
-        return parent.getProtocol();
-    }
-
-    @Override
-    public ByteBuffer getDatagram() {
-        return parent.getDatagram();
-    }
-
-    @Override
-    public ByteBuffer getChecksumPseudoHeader() {
-        return parent.getChecksumPseudoHeader();
-    }
-
-    @Override
     public ByteBuffer getPayload() {
         return payload;
     }
@@ -88,5 +63,10 @@ public class UDPPacket implements IPPacket, Datagram {
     @Override
     public int getDestinationPort() {
         return dst_port;
+    }
+
+    @Override
+    public IPPacket getParent() {
+        return parent;
     }
 }

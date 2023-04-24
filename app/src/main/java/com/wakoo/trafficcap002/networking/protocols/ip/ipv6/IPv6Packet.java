@@ -39,4 +39,9 @@ public class IPv6Packet implements IPPacket {
     public ByteBuffer getChecksumPseudoHeader() {
         return null;
     }
+
+    @Override
+    public byte[] getICMPReplyData() {
+        return null;
+    }
 }

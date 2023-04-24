@@ -41,7 +41,7 @@ public class TCPDatagramConsumer implements DatagramConsumer {
             final TCPPacket tcp_packet;
             tcp_packet = TCPPacket.of(parent);
             final TCPEndpoints endpoints;
-            endpoints = new TCPEndpoints(new InetSocketAddress(tcp_packet.getSourceAddress(), tcp_packet.getSourcePort()), new InetSocketAddress(tcp_packet.getDestinationAddress(), tcp_packet.getDestinationPort()));
+            endpoints = new TCPEndpoints(new InetSocketAddress(tcp_packet.getParent().getSourceAddress(), tcp_packet.getSourcePort()), new InetSocketAddress(tcp_packet.getParent().getDestinationAddress(), tcp_packet.getDestinationPort()));
             final TCPConnection connection;
             connection = connections.get(endpoints);
             if (connection != null) {
@@ -56,7 +56,7 @@ public class TCPDatagramConsumer implements DatagramConsumer {
                     final boolean[] rst_flag = new boolean[]{false, false, false, true, false, false};
                     tcp_builder = new TCPPacketBuilder(tcp_packet.getDestinationPort(), tcp_packet.getSourcePort(), ByteBuffer.allocate(0), 0, tcp_packet.getSeq(), rst_flag, 0, 0, new TCPOption(536, false), new TCPOption(0, false));
                     final IPPacketBuilder ip_builder;
-                    ip_builder = ((parent.getDestinationAddress()) instanceof Inet6Address) ? null : new IPv4PacketBuilder(tcp_packet.getDestinationAddress(), tcp_packet.getSourceAddress(), tcp_builder, 100, PROTOCOL_TCP);
+                    ip_builder = ((parent.getDestinationAddress()) instanceof Inet6Address) ? null : new IPv4PacketBuilder(tcp_packet.getParent().getDestinationAddress(), tcp_packet.getParent().getSourceAddress(), tcp_builder, 100, PROTOCOL_TCP);
                     final byte[][] packets;
                     packets = ip_builder.createPackets();
                     for (byte[] packet : packets) {

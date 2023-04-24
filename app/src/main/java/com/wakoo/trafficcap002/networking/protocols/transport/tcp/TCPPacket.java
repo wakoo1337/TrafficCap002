@@ -11,7 +11,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class TCPPacket implements IPPacket, Datagram {
+public class TCPPacket implements Datagram {
     public static final int POS_URG = 0;
     public static final int POS_ACK = 1;
     public static final int POS_PSH = 2;
@@ -137,31 +137,6 @@ public class TCPPacket implements IPPacket, Datagram {
     }
 
     @Override
-    public InetAddress getSourceAddress() {
-        return parent.getSourceAddress();
-    }
-
-    @Override
-    public InetAddress getDestinationAddress() {
-        return parent.getDestinationAddress();
-    }
-
-    @Override
-    public int getProtocol() {
-        return parent.getProtocol();
-    }
-
-    @Override
-    public ByteBuffer getDatagram() {
-        return parent.getDatagram();
-    }
-
-    @Override
-    public ByteBuffer getChecksumPseudoHeader() {
-        return parent.getChecksumPseudoHeader();
-    }
-
-    @Override
     public ByteBuffer getPayload() {
         return payload;
     }
@@ -206,5 +181,10 @@ public class TCPPacket implements IPPacket, Datagram {
 
     public TCPOption getScale() {
         return scale;
+    }
+
+    @Override
+    public IPPacket getParent() {
+        return parent;
     }
 }

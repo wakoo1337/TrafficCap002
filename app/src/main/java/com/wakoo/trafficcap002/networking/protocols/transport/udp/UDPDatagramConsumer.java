@@ -40,7 +40,7 @@ public class UDPDatagramConsumer implements DatagramConsumer {
                 external = new UDPExternalPort(src_port, selector, out, writer);
                 ports.put(src_port, external);
             }
-            external.getChannel().send(packet.getPayload(), new InetSocketAddress(packet.getDestinationAddress(), packet.getDestinationPort()));
+            external.getChannel().send(packet.getPayload(), new InetSocketAddress(packet.getParent().getDestinationAddress(), packet.getDestinationPort()));
         } catch (
                 BadDatagramException baddataexcp) {
             Log.e("Получение датаграммы UDP", "Датаграмма содержит ошибку", baddataexcp);

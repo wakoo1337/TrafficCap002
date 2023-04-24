@@ -14,11 +14,13 @@ public class IPv4Packet implements IPPacket {
     private final InetAddress source, destination;
     private final int protocol;
     private final ByteBuffer datagram;
+    private final ByteBuffer header;
 
-    private IPv4Packet(InetAddress src, InetAddress dst, int proto, ByteBuffer payload) {
+    private IPv4Packet(InetAddress src, InetAddress dst, int proto, ByteBuffer header, ByteBuffer payload) {
         source = src;
         destination = dst;
         protocol = proto;
+        this.header = header;
         datagram = payload;
     }
 
@@ -50,6 +52,7 @@ public class IPv4Packet implements IPPacket {
             packet.get(src);
             packet.get(dst);
             return new IPv4Packet(InetAddress.getByAddress(src), InetAddress.getByAddress(dst), proto,
+                    (ByteBuffer) ((ByteBuffer) packet.position(0)).slice().limit(hdr_len*4),
                     (ByteBuffer) ((ByteBuffer) packet.position(hdr_len * 4)).slice().limit(total_len - hdr_len * 4));
         } catch (
                 IndexOutOfBoundsException indexexcp) {
@@ -93,5 +96,17 @@ public class IPv4Packet implements IPPacket {
         buffer.putShort(10, (short) datagram.limit());
         buffer.position(0);
         return buffer;
+    }
+
+    @Override
+    public byte[] getICMPReplyData() {
+        final byte[] reply_bytes;
+        reply_bytes = new byte[header.limit() + 8];
+        header.position(0);
+        header.get(reply_bytes, 0, header.limit());
+        datagram.position(0);
+        datagram.get(reply_bytes, header.limit(), 8);
+        datagram.position(0);
+        return reply_bytes;
     }
 }
