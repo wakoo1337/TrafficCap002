@@ -29,15 +29,15 @@ public class IPv4PacketBuilder implements IPPacketBuilder {
 
     @Override
     public byte[][] createPackets() {
-        final int fragment_max = INTERFACE_MTU - HEADER_SIZE;
+        final int per_fragment = INTERFACE_MTU - HEADER_SIZE;
         final int datagram_size = builder.getDatagramSize();
-        final int fragments_count = (datagram_size / fragment_max) + (((datagram_size % fragment_max) > 0) ? 1 : 0);
+        final int fragments_count = (datagram_size / per_fragment) + (((datagram_size % per_fragment) > 0) ? 1 : 0);
         final byte[][] bytes = new byte[fragments_count][];
         final int[] offsets = new int[fragments_count];
         Arrays.fill(offsets, HEADER_SIZE);
         int remaining = datagram_size;
         for (int i = 0; i < fragments_count; i++) {
-            final int current_length = (i < (fragments_count - 1)) ? (Integer.min(fragment_max, remaining) & -8) : remaining;
+            final int current_length = (i < (fragments_count - 1)) ? (Integer.min(per_fragment, remaining) & -8) : remaining;
             bytes[i] = new byte[current_length + HEADER_SIZE];
             final ByteBuffer header = (ByteBuffer) ByteBuffer.wrap(bytes[i]).limit(20);
             header.putShort((short) (69 * 256)); // IPv4 и заголовок в 20 байтов, грязный извращенец!

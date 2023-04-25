@@ -13,6 +13,8 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 public class IPv6Packet implements IPPacket {
+    public static final int HEADER_FRAGMENT=44;
+
     private final InetAddress src, dst;
     private final int proto;
     private final ByteBuffer header;
@@ -49,6 +51,11 @@ public class IPv6Packet implements IPPacket {
                     final ByteBuffer payload = (ByteBuffer) ((ByteBuffer) packet.position(offset)).slice().limit(payload_length - offset + 40);
                     final ByteBuffer header = (ByteBuffer) packet.position(0).limit(offset);
                     return new IPv6Packet(src_addr, dst_addr, current_header, header, payload);
+                } else if (current_header == HEADER_FRAGMENT) {
+                    // TODO вытащить информацию о фрагментации
+                    next_header = Byte.toUnsignedInt(packet.get());
+                    offset += 7;
+                    packet.position(offset);
                 } else {
                     next_header = Byte.toUnsignedInt(packet.get());
                     if (next_header == 59)
