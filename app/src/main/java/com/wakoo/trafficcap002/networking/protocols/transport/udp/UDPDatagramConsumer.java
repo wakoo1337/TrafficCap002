@@ -20,7 +20,7 @@ public class UDPDatagramConsumer implements DatagramConsumer {
     private final FileOutputStream out;
     private final PcapWriter writer;
 
-    public UDPDatagramConsumer(Selector selector, FileOutputStream out, PcapWriter writer) throws IOException {
+    public UDPDatagramConsumer(Selector selector, FileOutputStream out, PcapWriter writer) {
         ports = new HashMap<>();
         this.selector = selector;
         this.out = out;

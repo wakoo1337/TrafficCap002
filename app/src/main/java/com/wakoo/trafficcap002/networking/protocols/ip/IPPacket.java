@@ -12,6 +12,7 @@ public interface IPPacket {
     InetAddress getDestinationAddress();
 
     int getProtocol();
+
     byte[] getICMPReplyData();
 
     ByteBuffer getDatagram();

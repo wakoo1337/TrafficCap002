@@ -11,7 +11,6 @@ import com.wakoo.trafficcap002.networking.threads.DescriptorListener;
 import com.wakoo.trafficcap002.networking.threads.SocketsListener;
 
 import java.io.IOException;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -24,7 +23,11 @@ public class CaptureService extends VpnService {
     private Thread sock_thread, desc_thread;
 
     public static InetAddress getLocalInet4() throws UnknownHostException {
-        return Inet4Address.getByAddress(new byte[]{(byte) 192, 88, 99, 3});
+        return InetAddress.getByAddress(new byte[]{(byte) 192, 88, 99, 3});
+    }
+
+    public static InetAddress getLocalInet6() throws UnknownHostException {
+        return InetAddress.getByAddress(new byte[]{-2, -128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3});
     }
 
     @Override
@@ -46,7 +49,9 @@ public class CaptureService extends VpnService {
                     builder.addDisallowedApplication(getPackageName());
                 }
                 builder.addAddress(getLocalInet4(), 32)
-                        .addRoute(Inet4Address.getByAddress(new byte[]{0, 0, 0, 0}), 0)
+                        .addRoute(InetAddress.getByAddress(new byte[]{0, 0, 0, 0}), 0)
+                        .addAddress(getLocalInet6(), 128)
+                        .addRoute(InetAddress.getByAddress(new byte[16]), 0)
                         .setBlocking(true)
                         .setMtu(DescriptorListener.INTERFACE_MTU);
                 pfd = builder.establish();

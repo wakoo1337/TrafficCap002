@@ -7,6 +7,7 @@ import com.wakoo.trafficcap002.CaptureService;
 import com.wakoo.trafficcap002.networking.PcapWriter;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacketBuilder;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
+import com.wakoo.trafficcap002.networking.protocols.ip.ipv6.IPv6PacketBuilder;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -58,14 +59,15 @@ public class UDPExternalPort {
         final IPPacketBuilder ip_builder;
         if (inet_from.getAddress() instanceof Inet4Address) {
             ip_builder = new IPv4PacketBuilder(inet_from.getAddress(), CaptureService.getLocalInet4(), udp_builder, 100, PROTOCOL_UDP);
-            final byte[][] packets;
-            packets = ip_builder.createPackets();
-            for (final byte[] packet : packets) {
-                out.write(packet);
-                writer.writePacket(packet, packet.length);
-            }
         } else if (inet_from.getAddress() instanceof Inet6Address) {
-
+            ip_builder = new IPv6PacketBuilder(inet_from.getAddress(), CaptureService.getLocalInet4(), udp_builder, 100, PROTOCOL_UDP);
+        } else
+            throw new RuntimeException("Неизвестный тип адреса");
+        final byte[][] packets;
+        packets = ip_builder.createPackets();
+        for (final byte[] packet : packets) {
+            out.write(packet);
+            writer.writePacket(packet, packet.length);
         }
     }
 }

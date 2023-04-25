@@ -16,16 +16,16 @@ public class IPv4Packet implements IPPacket {
     private final ByteBuffer datagram;
     private final ByteBuffer header;
 
-    private IPv4Packet(InetAddress src, InetAddress dst, int proto, ByteBuffer header, ByteBuffer payload) {
+    private IPv4Packet(InetAddress src, InetAddress dst, int proto, ByteBuffer header, ByteBuffer datagram) {
         source = src;
         destination = dst;
         protocol = proto;
         this.header = header;
-        datagram = payload;
+        this.datagram = datagram;
     }
 
     public static IPv4Packet of(ByteBuffer packet) throws BadIPPacketException {
-        assert (((int) packet.get(0)) >>> 4) == IPPacket.PROTOCOL_IPv4;
+        assert (((int) packet.get(0)) >>> 4) == PROTOCOL_IPv4;
         final int hdr_len;
         hdr_len = ((int) packet.get(0)) & 15;
         if (hdr_len < 5)
@@ -52,7 +52,7 @@ public class IPv4Packet implements IPPacket {
             packet.get(src);
             packet.get(dst);
             return new IPv4Packet(InetAddress.getByAddress(src), InetAddress.getByAddress(dst), proto,
-                    (ByteBuffer) ((ByteBuffer) packet.position(0)).slice().limit(hdr_len*4),
+                    (ByteBuffer) ((ByteBuffer) packet.position(0)).slice().limit(hdr_len * 4),
                     (ByteBuffer) ((ByteBuffer) packet.position(hdr_len * 4)).slice().limit(total_len - hdr_len * 4));
         } catch (
                 IndexOutOfBoundsException indexexcp) {

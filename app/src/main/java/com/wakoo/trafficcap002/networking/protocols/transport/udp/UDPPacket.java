@@ -5,7 +5,6 @@ import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.transport.BadDatagramException;
 import com.wakoo.trafficcap002.networking.protocols.transport.Datagram;
 
-import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
 public class UDPPacket implements Datagram {

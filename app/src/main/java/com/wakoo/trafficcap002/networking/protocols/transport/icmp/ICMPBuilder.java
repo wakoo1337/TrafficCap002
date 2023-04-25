@@ -9,10 +9,10 @@ import java.nio.ByteBuffer;
 public class ICMPBuilder implements DatagramBuilder {
     // Я знаю, что ICMP — протокол сетевой, а не транспортный
 
-    public static final int TYPE_DESTINATION_UNREACHABLE=3;
+    public static final int TYPE_DESTINATION_UNREACHABLE = 3;
 
-    public static final int CODE_HOST_UNREACHABLE=1;
-    public static final int CODE_PORT_UNREACHABLE=3;
+    public static final int CODE_HOST_UNREACHABLE = 1;
+    public static final int CODE_PORT_UNREACHABLE = 3;
 
     private final IPPacket packet;
     private final int type, code;

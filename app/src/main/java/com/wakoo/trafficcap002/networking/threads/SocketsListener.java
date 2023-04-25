@@ -9,6 +9,7 @@ import android.util.Log;
 import com.wakoo.trafficcap002.CaptureService;
 import com.wakoo.trafficcap002.networking.PcapWriter;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4BufferConsumer;
+import com.wakoo.trafficcap002.networking.protocols.ip.ipv6.IPv6BufferConsumer;
 import com.wakoo.trafficcap002.networking.protocols.transport.Periodic;
 import com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPConnection;
 import com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPDatagramConsumer;
@@ -42,17 +43,12 @@ public class SocketsListener implements Runnable {
             try (Selector selector = Selector.open()) {
                 this.selector = selector;
                 final UDPDatagramConsumer udp;
-                try {
-                    udp = new UDPDatagramConsumer(selector, out, writer);
-                } catch (
-                        IOException ioexcp) {
-                    Log.e("Открытие сокета UDP", "Невозможно открыть сокет UDP", ioexcp);
-                    return;
-                }
+                udp = new UDPDatagramConsumer(selector, out, writer);
                 final TCPDatagramConsumer tcp = new TCPDatagramConsumer(selector, out, writer);
                 final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, out, tcp, udp);
+                final IPv6BufferConsumer ipv6_consumer = new IPv6BufferConsumer(selector, out, tcp, udp);
                 while (!Thread.currentThread().isInterrupted()) {
-                    selector.select(Periodic.PERIODIC_NANOS / 1000000);
+                    selector.select(Periodic.PERIODIC_NANOS / 1000000L);
                     while (!packets_queue.isEmpty()) {
                         final ByteBuffer packet_buffer;
                         packet_buffer = packets_queue.poll();
@@ -63,7 +59,7 @@ public class SocketsListener implements Runnable {
                                 ipv4_consumer.accept(packet_buffer);
                                 break;
                             case PROTOCOL_IPv6:
-
+                                ipv6_consumer.accept(packet_buffer);
                                 break;
                         }
                     }

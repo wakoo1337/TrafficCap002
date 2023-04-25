@@ -10,6 +10,7 @@ import com.wakoo.trafficcap002.networking.PcapWriter;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacketBuilder;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
+import com.wakoo.trafficcap002.networking.protocols.ip.ipv6.IPv6PacketBuilder;
 import com.wakoo.trafficcap002.networking.protocols.transport.BadDatagramException;
 import com.wakoo.trafficcap002.networking.protocols.transport.DatagramConsumer;
 
@@ -56,7 +57,9 @@ public class TCPDatagramConsumer implements DatagramConsumer {
                     final boolean[] rst_flag = new boolean[]{false, false, false, true, false, false};
                     tcp_builder = new TCPPacketBuilder(tcp_packet.getDestinationPort(), tcp_packet.getSourcePort(), ByteBuffer.allocate(0), 0, tcp_packet.getSeq(), rst_flag, 0, 0, new TCPOption(536, false), new TCPOption(0, false));
                     final IPPacketBuilder ip_builder;
-                    ip_builder = ((parent.getDestinationAddress()) instanceof Inet6Address) ? null : new IPv4PacketBuilder(tcp_packet.getParent().getDestinationAddress(), tcp_packet.getParent().getSourceAddress(), tcp_builder, 100, PROTOCOL_TCP);
+                    ip_builder = ((parent.getDestinationAddress()) instanceof Inet6Address)
+                            ? new IPv6PacketBuilder(tcp_packet.getParent().getDestinationAddress(), tcp_packet.getParent().getSourceAddress(), tcp_builder, 100, PROTOCOL_TCP)
+                            : new IPv4PacketBuilder(tcp_packet.getParent().getDestinationAddress(), tcp_packet.getParent().getSourceAddress(), tcp_builder, 100, PROTOCOL_TCP);
                     final byte[][] packets;
                     packets = ip_builder.createPackets();
                     for (byte[] packet : packets) {

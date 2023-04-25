@@ -1,6 +1,7 @@
 package com.wakoo.trafficcap002.networking.protocols.transport.tcp;
 
-import static com.wakoo.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_ICMP;
+import static com.wakoo.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_ICMPv4;
+import static com.wakoo.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_ICMPv6;
 import static com.wakoo.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_TCP;
 import static com.wakoo.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder.CODE_HOST_UNREACHABLE;
 import static com.wakoo.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder.CODE_PORT_UNREACHABLE;
@@ -12,11 +13,11 @@ import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
 import com.wakoo.trafficcap002.networking.PcapWriter;
-import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacketBuilder;
-import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4Packet;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv6.IPv6Packet;
+import com.wakoo.trafficcap002.networking.protocols.ip.ipv6.IPv6PacketBuilder;
+import com.wakoo.trafficcap002.networking.protocols.transport.DatagramBuilder;
 import com.wakoo.trafficcap002.networking.protocols.transport.Periodic;
 import com.wakoo.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder;
 
@@ -86,7 +87,8 @@ public class TCPConnection implements ConnectionState {
     private void suicide() throws IOException {
         final TCPConnection connection;
         connection = connections.remove(endpoints);
-        if (connection != null) connection.closeByApplication();
+        if (connection != null)
+            connection.closeByApplication();
     }
 
     @Override
@@ -162,7 +164,9 @@ public class TCPConnection implements ConnectionState {
                         getOurRecieveWindow(), 0,
                         zero_option_false, zero_option_false);
                 final IPPacketBuilder ip_builder;
-                ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO IPv6
+                ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address)
+                        ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP)
+                        : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
                 final byte[][] packets;
                 packets = ip_builder.createPackets();
                 for (final byte[] packet : packets) {
@@ -192,7 +196,9 @@ public class TCPConnection implements ConnectionState {
                 0, 0,
                 zero_option_false, zero_option_false);
         final IPPacketBuilder ip_builder;
-        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO IPv6
+        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address)
+                ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP)
+                : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
         final byte[][] packets;
         packets = ip_builder.createPackets();
         for (final byte[] packet : packets) {
@@ -220,7 +226,9 @@ public class TCPConnection implements ConnectionState {
                 getOurRecieveWindow(), 0,
                 zero_option_false, zero_option_false);
         final IPPacketBuilder ip_builder;
-        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO IPv6
+        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address)
+                ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP)
+                : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
         final byte[][] packets;
         packets = ip_builder.createPackets();
         for (final byte[] packet : packets) {
@@ -239,7 +247,9 @@ public class TCPConnection implements ConnectionState {
                 0, 0,
                 zero_option_false, zero_option_false);
         final IPPacketBuilder ip_builder;
-        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO IPv6
+        ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address)
+                ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP)
+                : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
         final byte[][] packets;
         packets = ip_builder.createPackets();
         for (final byte[] packet : packets) {
@@ -263,13 +273,15 @@ public class TCPConnection implements ConnectionState {
                     channel.finishConnect();
                     state = new StateSuccessfullyConnected();
                     state.doPeriodic();
-                } catch (ConnectException | NoRouteToHostException e) {
-                    final ICMPBuilder icmp_builder;
+                } catch (
+                        ConnectException |
+                        NoRouteToHostException e) {
+                    final DatagramBuilder icmp_builder;
                     icmp_builder = new ICMPBuilder(syn_packet.getParent(), TYPE_DESTINATION_UNREACHABLE, CODE_HOST_UNREACHABLE);
                     final IPPacketBuilder ip_builder;
-                    ip_builder = (syn_packet.getParent() instanceof IPv6Packet) ?
-                            null :
-                            new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMP);
+                    ip_builder = (syn_packet.getParent() instanceof IPv6Packet)
+                            ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv6)
+                            : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv4);
                     final byte[][] packets;
                     packets = ip_builder.createPackets();
                     for (final byte[] packet : packets) {
@@ -277,13 +289,14 @@ public class TCPConnection implements ConnectionState {
                         writer.writePacket(packet, packet.length);
                     }
                     suicide();
-                } catch (PortUnreachableException e) {
-                    final ICMPBuilder icmp_builder;
+                } catch (
+                        PortUnreachableException e) {
+                    final DatagramBuilder icmp_builder;
                     icmp_builder = new ICMPBuilder(syn_packet.getParent(), TYPE_DESTINATION_UNREACHABLE, CODE_PORT_UNREACHABLE);
                     final IPPacketBuilder ip_builder;
                     ip_builder = (syn_packet.getParent() instanceof IPv6Packet) ?
-                            null :
-                            new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMP);
+                            new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv6) :
+                            new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv4);
                     final byte[][] packets;
                     packets = ip_builder.createPackets();
                     for (final byte[] packet : packets) {
@@ -320,7 +333,9 @@ public class TCPConnection implements ConnectionState {
                         getOurRecieveWindow(),
                         0, zero_option_false, zero_option_false);
                 final IPPacketBuilder ip_builder;
-                ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO сделать IPv6
+                ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address)
+                        ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP) :
+                        new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
                 byte[][] packets = ip_builder.createPackets();
                 for (byte[] packet : packets) {
                     out.write(packet);
@@ -348,7 +363,9 @@ public class TCPConnection implements ConnectionState {
                     new boolean[]{false, true, false, false, true, false}, // SYN + ACK
                     getOurRecieveWindow(),
                     0, mss, tx_scale);
-            final IPPacketBuilder ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address) ? null : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP); // TODO сделать IPv6
+            final IPPacketBuilder ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address)
+                    ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP)
+                    : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
             byte[][] packets = ip_builder.createPackets();
             for (byte[] packet : packets) {
                 out.write(packet);

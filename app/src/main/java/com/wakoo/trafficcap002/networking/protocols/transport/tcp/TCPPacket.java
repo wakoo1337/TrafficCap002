@@ -6,7 +6,6 @@ import com.wakoo.trafficcap002.networking.protocols.transport.BadDatagramExcepti
 import com.wakoo.trafficcap002.networking.protocols.transport.Datagram;
 
 import java.net.Inet6Address;
-import java.net.InetAddress;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -84,7 +83,7 @@ public class TCPPacket implements Datagram {
             urgent_payload = flags[POS_URG] ? (ByteBuffer) ((ByteBuffer) datagram.position(4 * data_offset)).slice().limit(urgent) : ByteBuffer.allocate(0);
             datagram.position(20);
             boolean end_not_reached = true;
-            TCPOption mss = new TCPOption((parent.getDestinationAddress() instanceof Inet6Address) ? 1280 : 576, false);
+            TCPOption mss = new TCPOption((parent.getDestinationAddress() instanceof Inet6Address) ? 1220 : 536, false);
             TCPOption scale = new TCPOption(0, false);
             while (end_not_reached && (datagram.position() < (4 * data_offset))) {
                 final byte kind;

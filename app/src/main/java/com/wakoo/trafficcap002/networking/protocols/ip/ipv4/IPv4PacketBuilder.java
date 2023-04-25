@@ -14,14 +14,14 @@ import java.util.Arrays;
 public class IPv4PacketBuilder implements IPPacketBuilder {
     private static final int HEADER_SIZE = 20;
     private static short identification = 1;
-    private final InetAddress src, dest;
+    private final InetAddress src, dst;
     private final DatagramBuilder builder;
     private final int ttl, proto;
 
-    public IPv4PacketBuilder(InetAddress src, InetAddress dest, DatagramBuilder builder, int ttl, int proto) {
-        assert (src instanceof Inet4Address) && (dest instanceof Inet4Address);
+    public IPv4PacketBuilder(InetAddress src, InetAddress dst, DatagramBuilder builder, int ttl, int proto) {
+        assert (src instanceof Inet4Address) && (dst instanceof Inet4Address);
         this.src = src;
-        this.dest = dest;
+        this.dst = dst;
         this.builder = builder;
         this.ttl = ttl;
         this.proto = proto;
@@ -49,7 +49,7 @@ public class IPv4PacketBuilder implements IPPacketBuilder {
             header.put((byte) proto);
             header.putShort((short) 0);
             header.put(src.getAddress());
-            header.put(dest.getAddress());
+            header.put(dst.getAddress());
             final ChecksumComputer header_cc = new ChecksumComputer();
             header.position(0);
             header_cc.moreData(header);
@@ -58,7 +58,7 @@ public class IPv4PacketBuilder implements IPPacketBuilder {
         }
         final ByteBuffer pseudo_header = ByteBuffer.allocate(12);
         pseudo_header.put(src.getAddress());
-        pseudo_header.put(dest.getAddress());
+        pseudo_header.put(dst.getAddress());
         pseudo_header.put((byte) 0);
         pseudo_header.put((byte) proto);
         pseudo_header.putShort((short) datagram_size);
