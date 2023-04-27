@@ -53,7 +53,7 @@ public class IPv6PacketBuilder implements IPPacketBuilder {
                 final ByteBuffer header = (ByteBuffer) ByteBuffer.wrap(bytes[i]).limit(48);
                 header.putShort((short) (96*256));
                 header.putShort((short) 0);
-                header.putShort((short) datagram_size);
+                header.putShort((short) (current_length+8));
                 header.put((byte) HEADER_FRAGMENT);
                 header.put((byte) ttl);
                 header.put(src.getAddress());
@@ -66,7 +66,6 @@ public class IPv6PacketBuilder implements IPPacketBuilder {
             }
             builder.fillPacketWithData(bytes, offsets, cc);
             identification++;
-            return bytes;
         } else {
             bytes = new byte[1][];
             bytes[0] = new byte[datagram_size + 40];
