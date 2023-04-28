@@ -121,14 +121,6 @@ public class TCPConnection implements ConnectionState {
         return size;
     }
 
-    private int getSiteSendQueueSize() {
-        int size = 0;
-        for (ByteBuffer bb : site_queue) {
-            size += bb.remaining();
-        }
-        return size;
-    }
-
     private void removeConfirmedSegments(int new_ack, int new_window) {
         final Iterator<TCPSegmentData> seg_iterator;
         if (new_ack == last_acknowledged)
@@ -142,44 +134,10 @@ public class TCPConnection implements ConnectionState {
                 last_acknowledged = new_ack;
                 last_window = new_window;
                 app_queue.subList(0, i + 1).clear();
-                break;
+                return;
             }
             i++;
         }
-    }
-
-    private void sendRemainingToApp() throws IOException {
-        final Iterator<TCPSegmentData> seg_iterator;
-        seg_iterator = app_queue.iterator();
-        while (seg_iterator.hasNext()) {
-            final TCPSegmentData seg;
-            seg = seg_iterator.next();
-            if (seg.checkTimeoutExpiredThenUpdate() && ((seg.getSequenceNumber() + seg.getSegmentLength()) < (last_acknowledged + last_window))) {
-                final TCPPacketBuilder tcp_builder;
-                tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
-                        endpoints.getApplication().getPort(),
-                        seg.getSegmentData(),
-                        seg.getSequenceNumber(), wanted_seq,
-                        new boolean[]{false, true, seg.getFlagPush(), false, false, false},
-                        getOurRecieveWindow(), 0,
-                        zero_option_false, zero_option_false);
-                final IPPacketBuilder ip_builder;
-                ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address)
-                        ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP)
-                        : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
-                final byte[][] packets;
-                packets = ip_builder.createPackets();
-                for (final byte[] packet : packets) {
-                    out.write(packet);
-                    writer.writePacket(packet, packet.length);
-                }
-            }
-        }
-    }
-
-    private void setInterestOptions() {
-        if (key.isValid())
-            key.interestOps(((last_window - getApplicationSendQueueSize()) > 0 ? OP_READ : 0) | ((getSiteSendQueueSize() > 0) ? OP_WRITE : 0));
     }
 
     public void closeByApplication() throws IOException {
@@ -255,6 +213,40 @@ public class TCPConnection implements ConnectionState {
         for (final byte[] packet : packets) {
             out.write(packet);
             writer.writePacket(packet, packet.length);
+        }
+    }
+
+    private void setInterestOptions() {
+        if (key.isValid())
+            key.interestOps((((last_window - getApplicationSendQueueSize()) > 0) ? OP_READ : 0) | ((!site_queue.isEmpty()) ? OP_WRITE : 0));
+    }
+
+    private void sendRemainingToApp() throws IOException {
+        final Iterator<TCPSegmentData> seg_iterator;
+        seg_iterator = app_queue.iterator();
+        while (seg_iterator.hasNext()) {
+            final TCPSegmentData seg;
+            seg = seg_iterator.next();
+            if (seg.checkTimeoutExpiredThenUpdate() && ((seg.getSequenceNumber() + seg.getSegmentLength()) < (last_acknowledged + last_window))) {
+                final TCPPacketBuilder tcp_builder;
+                tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
+                        endpoints.getApplication().getPort(),
+                        seg.getSegmentData(),
+                        seg.getSequenceNumber(), wanted_seq,
+                        new boolean[]{false, true, seg.getFlagPush(), false, false, false},
+                        getOurRecieveWindow(), 0,
+                        zero_option_false, zero_option_false);
+                final IPPacketBuilder ip_builder;
+                ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address)
+                        ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP)
+                        : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+                final byte[][] packets;
+                packets = ip_builder.createPackets();
+                for (final byte[] packet : packets) {
+                    out.write(packet);
+                    writer.writePacket(packet, packet.length);
+                }
+            }
         }
     }
 
@@ -392,11 +384,13 @@ public class TCPConnection implements ConnectionState {
                     final ByteBuffer payload = tcp_packet.getPayload();
                     if (payload.hasRemaining())
                         site_queue.add(payload);
-                    if (tcp_packet.getFlags()[POS_FIN]) {
-                        wanted_seq++; // FIN, как и SYN, увеличивает номер последовательности на единицу
-                        state = new StateFlushRemainingToBoth();
-                    }
                     wanted_seq += urgent_data.limit() + payload.limit();
+                    if (tcp_packet.getFlags()[POS_FIN]) {
+                        wanted_seq++;
+                        acknowledge();
+                        state = new StateFinRecieved();
+                        return;
+                    }
                 }
                 if ((!app_queue.isEmpty()) && (last_window != 0))
                     sendRemainingToApp();
@@ -417,9 +411,8 @@ public class TCPConnection implements ConnectionState {
                         readed = ((SocketChannel) key.channel()).read(data);
                         data.flip();
                         if (readed == -1) {
-                            // Сайт разорвал соединение
-                            key.channel().close();
-                            state = new StateFlushRemainingToApp();
+                            // Сайт больше не будет передавать данные
+                            state = new StateMinusOneRecieved();
                             return;
                         } else {
                             final List<TCPSegmentData> segs;
@@ -455,7 +448,6 @@ public class TCPConnection implements ConnectionState {
                 setInterestOptions();
             } else {
                 resetConnection();
-                key.channel().close();
                 suicide();
             }
         }
@@ -466,115 +458,36 @@ public class TCPConnection implements ConnectionState {
         }
     }
 
-    private final class StateFlushRemainingToApp extends Periodic implements ConnectionState {
-        // Сайт разорвал соединение. Сбрасываем остаток на приложение, игнорируя поступающие с него данные, затем отправляем на приложение FIN.
+    private final class StateFinRecieved extends Periodic implements ConnectionState {
+        // Получен FIN от приложения. Подтвердить его, закончить пересылку на сайт, сделать shutdown(), дождаться завершения отправки сайтом и отослать свой FIN.
+
+        private boolean reading_finished = false;
 
         @Override
         public void consumePacket(TCPPacket tcp_packet) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK]) {
                 removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
-                mockDataReception(tcp_packet);
-                if (tcp_packet.getFlags()[POS_FIN]) {
-                    wanted_seq++;
-                    acknowledge();
-                }
-                if (app_queue.isEmpty()) {
-                    state = new StateOurFinSent();
-                    sendFin();
-                } else if ((last_window > 0))
-                    sendRemainingToApp();
-                else {
-                    acknowledge();
-                }
-            }
-        }
-
-        @Override
-        public void processSelectionKey() throws IOException {
-        }
-
-        @Override
-        protected void periodicAction() throws IOException {
-            sendRemainingToApp();
-        }
-    }
-
-    private final class StateOurFinSent extends Periodic implements ConnectionState {
-        // Данные на приложение сброшены, отправлен наш FIN. Имитируем приём данных и ждём его подтверждения.
-
-        @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
-            if (tcp_packet.getFlags()[POS_ACK]) {
-                mockDataReception(tcp_packet);
-                if (tcp_packet.getFlags()[POS_FIN] && (tcp_packet.getAck() == our_seq[0])) {
-                    wanted_seq++;
-                    acknowledge();
-                    state = new StateSimultaneousClosing();
-                } else if (tcp_packet.getAck() == (our_seq[0] + 1)) {
-                    our_seq[0]++;
-                    state = new StateOurFinAcknowledged();
-                } else
-                    acknowledge();
-            }
-        }
-
-        @Override
-        public void processSelectionKey() throws IOException {
-        }
-
-        @Override
-        protected void periodicAction() throws IOException {
-            sendFin();
-        }
-    }
-
-    private final class StateOurFinAcknowledged extends Periodic implements ConnectionState {
-        // Наш FIN подтверждён. Имитируем приём данных, ждём FIN от противоположной стороны. Подтверждаем его
-
-        @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
-            if (tcp_packet.getFlags()[POS_ACK]) {
-                mockDataReception(tcp_packet);
-                if (tcp_packet.getFlags()[POS_FIN] && (tcp_packet.getAck() == our_seq[0])) {
-                    wanted_seq++;
-                    acknowledge();
-                    suicide();
-                } else
-                    acknowledge();
-            }
-        }
-
-        @Override
-        public void processSelectionKey() throws IOException {
-        }
-
-        @Override
-        protected void periodicAction() throws IOException {
-        }
-    }
-
-    private final class StateFlushRemainingToBoth extends Periodic implements ConnectionState {
-        // Получен FIN от приложения. Сбрасываем очереди и на сайт, и на приложение.
-
-        @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
-            if (tcp_packet.getFlags()[POS_ACK]) {
-                removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
+                final int old_ack = wanted_seq;
+                if (tcp_packet.getSeq() == wanted_seq)
+                    mockDataReception(tcp_packet);
                 if ((!app_queue.isEmpty()) && (last_window != 0))
                     sendRemainingToApp();
-                else
+                else if ((last_window == 0) || (old_ack != wanted_seq))
                     acknowledge();
-                if (site_queue.isEmpty() && app_queue.isEmpty()) {
-                    sendFin();
-                    state = new StateAckWait();
-                }
+            }
+            if (site_queue.isEmpty()) {
+                ((SocketChannel) key.channel()).shutdownOutput();
+            }
+            if (reading_finished && app_queue.isEmpty()) {
+                sendFin();
+                state = new StateFinAnswer(false);
             }
         }
 
         @Override
         public void processSelectionKey() throws IOException {
             if (key.isValid()) {
-                if (key.isReadable()) {
+                if (key.isReadable() && (!reading_finished)) {
                     final ByteBuffer data;
                     final int readed;
                     data = ByteBuffer.allocate(65536);
@@ -582,21 +495,116 @@ public class TCPConnection implements ConnectionState {
                         readed = ((SocketChannel) key.channel()).read(data);
                         data.flip();
                         if (readed == -1) {
-                            // Сайт разорвал соединение
-                            key.channel().close();
-                            site_queue.clear();
+                            // Сайт больше не будет передавать данные
+                            reading_finished = true;
+                            if (app_queue.isEmpty()) {
+                                sendFin();
+                                state = new StateFinAnswer(false);
+                            }
                             return;
                         } else {
                             final List<TCPSegmentData> segs;
                             segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
                             app_queue.addAll(segs);
+                            sendRemainingToApp();
                         }
                     } catch (
                             IOException ioexcp) {
                         resetConnection();
                         suicide();
+                        return;
                     }
                 }
+                if (key.isWritable()) {
+                    final Iterator<ByteBuffer> iterator;
+                    iterator = site_queue.iterator();
+                    try {
+                        while (iterator.hasNext()) {
+                            final ByteBuffer current;
+                            current = iterator.next();
+                            ((SocketChannel) key.channel()).write(current);
+                            if (!current.hasRemaining())
+                                iterator.remove();
+                        }
+                        if (site_queue.isEmpty()) {
+                            ((SocketChannel) key.channel()).shutdownOutput();
+                            return;
+                        }
+                    } catch (
+                            IOException ioexcp) {
+                        resetConnection();
+                        suicide();
+                        return;
+                    }
+                }
+                setInterestOptions();
+            } else {
+                resetConnection();
+                suicide();
+            }
+        }
+
+        @Override
+        protected void periodicAction() throws IOException {
+            if (reading_finished && app_queue.isEmpty()) {
+                sendFin();
+                state = new StateFinAnswer(false);
+            } else
+                sendRemainingToApp();
+        }
+    }
+
+    private final class StateMinusOneRecieved extends Periodic implements ConnectionState {
+        // read() вернула -1
+
+        private boolean fin_got = false;
+
+        @Override
+        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+            if (tcp_packet.getFlags()[POS_ACK]) {
+                removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
+                final int old_ack = wanted_seq;
+                if (tcp_packet.getSeq() == wanted_seq) {
+                    if (fin_got) {
+                        mockDataReception(tcp_packet);
+                    } else {
+                        final ByteBuffer urgent_data;
+                        urgent_data = tcp_packet.getUrgentPayload();
+                        final Socket sock;
+                        sock = ((SocketChannel) key.channel()).socket();
+                        while (urgent_data.hasRemaining())
+                            sock.sendUrgentData(urgent_data.get());
+                        final ByteBuffer payload = tcp_packet.getPayload();
+                        if (payload.hasRemaining())
+                            site_queue.add(payload);
+                        wanted_seq += urgent_data.limit() + payload.limit();
+                    }
+                    if (tcp_packet.getFlags()[POS_FIN] && (!fin_got)) {
+                        wanted_seq++;
+                        acknowledge();
+                        fin_got = true;
+                    }
+                    if (fin_got && site_queue.isEmpty()) {
+                        key.channel().close();
+                        acknowledge();
+                        state = new StateFinAnswer(false);
+                    } else if (app_queue.isEmpty()) {
+                        sendFin();
+                        state = new StateFinAnswer(true);
+                    }
+                }
+                if ((!app_queue.isEmpty()) && (last_window != 0))
+                    sendRemainingToApp();
+                else if ((last_window == 0) || (old_ack != wanted_seq))
+                    acknowledge();
+            }
+            if (key.isValid())
+                key.interestOps((!site_queue.isEmpty()) ? OP_WRITE : 0);
+        }
+
+        @Override
+        public void processSelectionKey() throws IOException {
+            if (key.isValid()) {
                 if (key.isWritable()) {
                     final Iterator<ByteBuffer> iterator;
                     iterator = site_queue.iterator();
@@ -612,36 +620,44 @@ public class TCPConnection implements ConnectionState {
                             IOException ioexcp) {
                         resetConnection();
                         suicide();
+                        return;
                     }
                 }
-                if (site_queue.isEmpty()) {
-                    key.channel().close();
-                } else {
-                    key.interestOps(OP_WRITE | ((last_window - getApplicationSendQueueSize()) > 0 ? OP_READ : 0));
-                }
+                key.interestOps((!site_queue.isEmpty()) ? OP_WRITE : 0);
             } else {
-                key.channel().close();
-                site_queue.clear();
+                resetConnection();
+                suicide();
             }
         }
 
         @Override
         protected void periodicAction() throws IOException {
-            if (site_queue.isEmpty() && app_queue.isEmpty()) {
+            if (app_queue.isEmpty())
                 sendFin();
-                state = new StateAckWait();
-            } else if (!app_queue.isEmpty())
+            else
                 sendRemainingToApp();
         }
     }
 
-    private final class StateAckWait extends Periodic implements ConnectionState {
-        // Данные сброшены. Отправляем свой FIN, ждём на него ответа.
+    private final class StateFinAnswer extends Periodic implements ConnectionState {
+        // Ожидаем ответа на отправленный FIN.
+
+        private final boolean wait_fin;
+
+        public StateFinAnswer(boolean wait) {
+            wait_fin = wait;
+        }
 
         @Override
         public void consumePacket(TCPPacket tcp_packet) throws IOException {
-            if (tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1))) {
-                suicide();
+            if (wait_fin) {
+                if (tcp_packet.getFlags()[POS_FIN]) {
+                    wanted_seq++;
+                    acknowledge();
+                    sendFin();
+                }
+            } else {
+                if (tcp_packet.getAck() == our_seq[0]+1) suicide();
             }
         }
 
@@ -653,26 +669,6 @@ public class TCPConnection implements ConnectionState {
         @Override
         protected void periodicAction() throws IOException {
             sendFin();
-        }
-    }
-
-    private final class StateSimultaneousClosing extends Periodic implements ConnectionState {
-        // Подтверждаем чужой ACK и ждём ответа на свой
-
-        @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
-            if (tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1)))
-                suicide();
-        }
-
-        @Override
-        public void processSelectionKey() throws IOException {
-
-        }
-
-        @Override
-        protected void periodicAction() throws IOException {
-            acknowledge();
         }
     }
 }
