@@ -474,7 +474,7 @@ public class TCPConnection implements ConnectionState {
                     sendRemainingToApp();
                 else if ((last_window == 0) || (old_ack != wanted_seq))
                     acknowledge();
-            }
+
             if (site_queue.isEmpty()) {
                 ((SocketChannel) key.channel()).shutdownOutput();
             }
@@ -482,7 +482,7 @@ public class TCPConnection implements ConnectionState {
                 sendFin();
                 state = new StateFinAnswer(false);
             }
-        }
+        }}
 
         @Override
         public void processSelectionKey() throws IOException {
@@ -537,7 +537,7 @@ public class TCPConnection implements ConnectionState {
                         return;
                     }
                 }
-                setInterestOptions();
+                key.interestOps(((((last_window - getApplicationSendQueueSize()) > 0) && (!reading_finished)) ? OP_READ : 0) | ((!site_queue.isEmpty()) ? OP_WRITE : 0));
             } else {
                 resetConnection();
                 suicide();
@@ -584,11 +584,10 @@ public class TCPConnection implements ConnectionState {
                         acknowledge();
                         fin_got = true;
                     }
-                    if (fin_got && site_queue.isEmpty()) {
+                    if (site_queue.isEmpty()) {
                         key.channel().close();
-                        acknowledge();
-                        state = new StateFinAnswer(false);
-                    } else if (app_queue.isEmpty()) {
+                    }
+                    if (app_queue.isEmpty()) {
                         sendFin();
                         state = new StateFinAnswer(true);
                     }
@@ -615,6 +614,10 @@ public class TCPConnection implements ConnectionState {
                             ((SocketChannel) key.channel()).write(current);
                             if (!current.hasRemaining())
                                 iterator.remove();
+                        }
+                        if (site_queue.isEmpty()) {
+                            key.channel().close();
+                            return;
                         }
                     } catch (
                             IOException ioexcp) {
@@ -655,7 +658,7 @@ public class TCPConnection implements ConnectionState {
                     wanted_seq++;
                     acknowledge();
                     sendFin();
-                }
+                } else suicide();
             } else {
                 if (tcp_packet.getAck() == our_seq[0]+1) suicide();
             }
