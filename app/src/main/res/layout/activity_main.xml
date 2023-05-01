@@ -30,12 +30,13 @@
         android:text="@string/start_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/stop_button"
-        app:layout_constraintTop_toBottomOf="@id/hello_view" />
+        app:layout_constraintTop_toBottomOf="@id/hello_view"
+        />
 
     <EditText
         android:id="@+id/appcapture_edit"
         android:layout_width="0px"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:hint="@string/app_to_capture_string"
         android:inputType="text"
         app:layout_constraintEnd_toEndOf="parent"
@@ -50,5 +51,33 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/appcapture_edit" />
+
+    <EditText
+        android:id="@+id/site_edit"
+        android:layout_width="0px"
+        android:layout_height="60dp"
+        android:hint="@string/site_string"
+        android:inputType="text"
+        app:layout_constraintEnd_toStartOf="@+id/load_button"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/status_view" />
+
+    <Button
+        android:id="@+id/load_button"
+        android:layout_width="wrap_content"
+        android:layout_height="60dp"
+        android:text="@string/update_string"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/status_view" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/labels_recycler"
+        android:layout_width="match_parent"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/site_edit"
+        android:layout_height="0dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

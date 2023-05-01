@@ -41,7 +41,7 @@ public class IPv6PacketBuilder implements IPPacketBuilder {
         cc.moreData(pseudo);
         final byte[][] bytes;
         if (datagram_size > max_nofrag) {
-            final int per_fragment = max_nofrag-8;
+            final int per_fragment = max_nofrag - 8;
             final int fragments_count = datagram_size / per_fragment + (((datagram_size % per_fragment) != 0) ? 1 : 0);
             int remaining = datagram_size;
             final int[] offsets = new int[fragments_count];
@@ -51,15 +51,15 @@ public class IPv6PacketBuilder implements IPPacketBuilder {
                 final int current_length = (i < (fragments_count - 1)) ? (Integer.min(per_fragment, remaining) & -8) : remaining;
                 bytes[i] = new byte[48 + current_length];
                 final ByteBuffer header = (ByteBuffer) ByteBuffer.wrap(bytes[i]).limit(48);
-                header.putShort((short) (96*256));
+                header.putShort((short) (96 * 256));
                 header.putShort((short) 0);
-                header.putShort((short) (current_length+8));
+                header.putShort((short) (current_length + 8));
                 header.put((byte) HEADER_FRAGMENT);
                 header.put((byte) ttl);
                 header.put(src.getAddress());
                 header.put(dst.getAddress());
-                header.putShort((short) (proto*256));
-                final short frag_offset_M = (short) (((datagram_size - remaining) & -8) + (i == (fragments_count-1) ? 1 : 0));
+                header.putShort((short) (proto * 256));
+                final short frag_offset_M = (short) (((datagram_size - remaining) & -8) + (i == (fragments_count - 1) ? 1 : 0));
                 header.putShort(frag_offset_M);
                 header.putInt(identification);
                 remaining -= current_length;
@@ -70,7 +70,7 @@ public class IPv6PacketBuilder implements IPPacketBuilder {
             bytes = new byte[1][];
             bytes[0] = new byte[datagram_size + 40];
             final ByteBuffer header = (ByteBuffer) ByteBuffer.wrap(bytes[0]).limit(40);
-            header.putShort((byte) (96*256));
+            header.putShort((byte) (96 * 256));
             header.putShort((short) 0);
             header.putShort((short) datagram_size);
             header.put((byte) proto);

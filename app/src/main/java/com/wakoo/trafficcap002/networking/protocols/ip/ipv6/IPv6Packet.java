@@ -13,7 +13,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 public class IPv6Packet implements IPPacket {
-    public static final int HEADER_FRAGMENT=44;
+    public static final int HEADER_FRAGMENT = 44;
 
     private final InetAddress src, dst;
     private final int proto;

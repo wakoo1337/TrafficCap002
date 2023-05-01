@@ -326,8 +326,8 @@ public class TCPConnection implements ConnectionState {
                         0, zero_option_false, zero_option_false);
                 final IPPacketBuilder ip_builder;
                 ip_builder = (endpoints.getSite().getAddress() instanceof Inet6Address)
-                        ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP) :
-                        new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
+                        ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP)
+                        : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), tcp_builder, 100, PROTOCOL_TCP);
                 byte[][] packets = ip_builder.createPackets();
                 for (byte[] packet : packets) {
                     out.write(packet);
@@ -474,15 +474,14 @@ public class TCPConnection implements ConnectionState {
                     sendRemainingToApp();
                 else if ((last_window == 0) || (old_ack != wanted_seq))
                     acknowledge();
-
-            if (site_queue.isEmpty()) {
-                ((SocketChannel) key.channel()).shutdownOutput();
+                if (site_queue.isEmpty())
+                    ((SocketChannel) key.channel()).shutdownOutput();
+                if (reading_finished && app_queue.isEmpty()) {
+                    sendFin();
+                    state = new StateFinAnswer(false);
+                }
             }
-            if (reading_finished && app_queue.isEmpty()) {
-                sendFin();
-                state = new StateFinAnswer(false);
-            }
-        }}
+        }
 
         @Override
         public void processSelectionKey() throws IOException {
@@ -555,7 +554,7 @@ public class TCPConnection implements ConnectionState {
     }
 
     private final class StateMinusOneRecieved extends Periodic implements ConnectionState {
-        // read() вернула -1
+        // read() вернула -1. Закончить отправку на сайт, разорвать соединение с ним. Передав остаток переданных данных на приложение и получив подтверждение, отправить FIN.
 
         private boolean fin_got = false;
 
@@ -589,7 +588,7 @@ public class TCPConnection implements ConnectionState {
                     }
                     if (app_queue.isEmpty()) {
                         sendFin();
-                        state = new StateFinAnswer(true);
+                        state = new StateFinAnswer(!fin_got);
                     }
                 }
                 if ((!app_queue.isEmpty()) && (last_window != 0))
@@ -658,9 +657,11 @@ public class TCPConnection implements ConnectionState {
                     wanted_seq++;
                     acknowledge();
                     sendFin();
-                } else suicide();
+                } else
+                    suicide();
             } else {
-                if (tcp_packet.getAck() == our_seq[0]+1) suicide();
+                if (tcp_packet.getAck() == our_seq[0] + 1)
+                    suicide();
             }
         }
 

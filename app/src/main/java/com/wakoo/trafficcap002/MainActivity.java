@@ -15,11 +15,15 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private Button start_button, stop_button;
     private TextView status_view;
     private EditText appcapture_edit;
+    private RecyclerView labels_recycler;
     private CaptureService.CaptureServiceBinder binder;
     private boolean connected = false;
     private final ServiceConnection capture_connection = new ServiceConnection() {
@@ -67,6 +71,10 @@ public class MainActivity extends AppCompatActivity {
         stop_button = findViewById(R.id.stop_button);
         status_view = findViewById(R.id.status_view);
         appcapture_edit = findViewById(R.id.appcapture_edit);
+
+        labels_recycler = findViewById(R.id.labels_recycler);
+        final LabelsAdapter labels_adapter = new LabelsAdapter(this);
+        labels_recycler.setAdapter(labels_adapter);
 
         start_button.setOnClickListener(new View.OnClickListener() {
             @Override
