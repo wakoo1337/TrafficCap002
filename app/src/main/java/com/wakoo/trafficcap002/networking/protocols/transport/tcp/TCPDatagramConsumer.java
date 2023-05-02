@@ -23,7 +23,7 @@ import java.nio.channels.Selector;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TCPDatagramConsumer implements DatagramConsumer {
+public final class TCPDatagramConsumer implements DatagramConsumer {
     private final Map<TCPEndpoints, TCPConnection> connections;
     private final Selector selector;
     private final FileOutputStream out;

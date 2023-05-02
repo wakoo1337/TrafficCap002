@@ -10,7 +10,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-public class DescriptorListener implements Runnable {
+public final class DescriptorListener implements Runnable {
     public static final int INTERFACE_MTU = 8192;
     private final FileDescriptor fd;
     private final SocketsListener sock_listener;

@@ -4,7 +4,7 @@ import androidx.annotation.Nullable;
 
 import java.net.InetSocketAddress;
 
-public class TCPEndpoints {
+public final class TCPEndpoints {
     private final InetSocketAddress application;
     private final InetSocketAddress site;
 

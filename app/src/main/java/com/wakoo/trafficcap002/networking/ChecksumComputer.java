@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 
 import java.nio.ByteBuffer;
 
-public class ChecksumComputer implements Cloneable {
+public final class ChecksumComputer implements Cloneable {
     private int acc;
     private boolean phase;
 

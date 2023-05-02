@@ -10,7 +10,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class TCPPacket implements Datagram {
+public final class TCPPacket implements Datagram {
     public static final int POS_URG = 0;
     public static final int POS_ACK = 1;
     public static final int POS_PSH = 2;

@@ -6,7 +6,7 @@ import com.wakoo.trafficcap002.networking.protocols.transport.DatagramBuilder;
 
 import java.nio.ByteBuffer;
 
-public class ICMPBuilder implements DatagramBuilder {
+public final class ICMPBuilder implements DatagramBuilder {
     // Я знаю, что ICMP — протокол сетевой, а не транспортный
 
     public static final int TYPE_DESTINATION_UNREACHABLE = 3;

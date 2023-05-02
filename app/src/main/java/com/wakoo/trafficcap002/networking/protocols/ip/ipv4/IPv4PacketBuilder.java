@@ -11,7 +11,7 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class IPv4PacketBuilder implements IPPacketBuilder {
+public final class IPv4PacketBuilder implements IPPacketBuilder {
     private static final int HEADER_SIZE = 20;
     private static short identification = 1;
     private final InetAddress src, dst;

@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class CaptureService extends VpnService {
+public final class CaptureService extends VpnService {
     public static final String APP_TO_LISTEN = "com.wakoo.trafficcap002.CaptureService.listenapp";
 
     private ParcelFileDescriptor pfd;

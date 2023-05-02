@@ -5,7 +5,7 @@ import com.wakoo.trafficcap002.networking.protocols.transport.DatagramBuilder;
 
 import java.nio.ByteBuffer;
 
-public class UDPPacketBuilder implements DatagramBuilder {
+public final class UDPPacketBuilder implements DatagramBuilder {
     private final int src_port, dst_port;
     private final ByteBuffer data;
 

@@ -1,6 +1,6 @@
 package com.wakoo.trafficcap002;
 
-public class Label {
+public final class Label implements Comparable<Label> {
     private final String label;
     private boolean mark;
 
@@ -19,5 +19,10 @@ public class Label {
 
     public void setChecked(boolean mark) {
         this.mark = mark;
+    }
+
+    @Override
+    public int compareTo(Label label) {
+        return getLabel().compareTo(label.getLabel());
     }
 }

@@ -1,7 +1,6 @@
 package com.wakoo.trafficcap002;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,9 +11,10 @@ import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-public class LabelsAdapter extends RecyclerView.Adapter<LabelsAdapter.ViewLabelHolder> {
+public final class LabelsAdapter extends RecyclerView.Adapter<LabelsAdapter.ViewLabelHolder> {
     private final List<Label> labels;
     private final LayoutInflater inflater;
 
@@ -42,6 +42,8 @@ public class LabelsAdapter extends RecyclerView.Adapter<LabelsAdapter.ViewLabelH
     public void setLabels(List<Label> labels) {
         this.labels.clear();
         this.labels.addAll(labels);
+        Collections.sort(this.labels);
+        notifyDataSetChanged();
     }
 
     public static class ViewLabelHolder extends RecyclerView.ViewHolder {
@@ -50,7 +52,7 @@ public class LabelsAdapter extends RecyclerView.Adapter<LabelsAdapter.ViewLabelH
 
         public ViewLabelHolder(View view) {
             super(view);
-            sw = (SwitchCompat) view.findViewById(R.id.label_switch);
+            sw = view.findViewById(R.id.label_switch);
             sw.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {

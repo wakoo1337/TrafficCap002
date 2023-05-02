@@ -11,7 +11,7 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class IPv6PacketBuilder implements IPPacketBuilder {
+public final class IPv6PacketBuilder implements IPPacketBuilder {
     private static int identification = 1;
 
     private final InetAddress src, dst;

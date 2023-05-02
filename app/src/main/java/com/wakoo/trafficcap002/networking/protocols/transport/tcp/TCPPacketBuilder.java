@@ -5,7 +5,7 @@ import com.wakoo.trafficcap002.networking.protocols.transport.DatagramBuilder;
 
 import java.nio.ByteBuffer;
 
-public class TCPPacketBuilder implements DatagramBuilder {
+public final class TCPPacketBuilder implements DatagramBuilder {
     private final int src_port, dst_port;
     private final ByteBuffer data;
     private final int seq, ack;

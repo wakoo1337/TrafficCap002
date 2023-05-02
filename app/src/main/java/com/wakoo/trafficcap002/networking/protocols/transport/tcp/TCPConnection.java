@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class TCPConnection implements ConnectionState {
+public final class TCPConnection implements ConnectionState {
     private static final TCPOption zero_option_true = new TCPOption(0, true);
     private static final TCPOption zero_option_false = new TCPOption(0, false);
 

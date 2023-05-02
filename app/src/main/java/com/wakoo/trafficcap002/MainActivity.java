@@ -19,7 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public final class MainActivity extends AppCompatActivity {
     private Button start_button, stop_button;
     private TextView status_view;
     private EditText appcapture_edit;
@@ -75,6 +75,18 @@ public class MainActivity extends AppCompatActivity {
         labels_recycler = findViewById(R.id.labels_recycler);
         final LabelsAdapter labels_adapter = new LabelsAdapter(this);
         labels_recycler.setAdapter(labels_adapter);
+        labels_adapter.setLabels(List.of(
+                new Label("social", false),
+                new Label("web", false),
+                new Label("video", false),
+                new Label("music", false),
+                new Label("vpn", false),
+                new Label("im", false),
+                new Label("anonymize", false),
+                new Label("games", false),
+                new Label("p2p", false),
+                new Label("malware", false)
+        ));
 
         start_button.setOnClickListener(new View.OnClickListener() {
             @Override

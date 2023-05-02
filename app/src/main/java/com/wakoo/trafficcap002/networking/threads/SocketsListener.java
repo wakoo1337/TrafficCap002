@@ -24,7 +24,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class SocketsListener implements Runnable {
+public final class SocketsListener implements Runnable {
     private final FileDescriptor fd;
     private final ConcurrentLinkedQueue<ByteBuffer> packets_queue;
     private final CaptureService cap_svc;

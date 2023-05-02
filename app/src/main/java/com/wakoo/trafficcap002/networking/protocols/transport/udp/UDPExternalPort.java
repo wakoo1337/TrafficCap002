@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.Selector;
 
-public class UDPExternalPort {
+public final class UDPExternalPort {
     private final DatagramChannel channel;
     private final int port;
     private final FileOutputStream out;

@@ -1,6 +1,6 @@
 package com.wakoo.trafficcap002.networking.protocols.ip;
 
-public class BadIPPacketException extends Exception {
+public final class BadIPPacketException extends Exception {
     public BadIPPacketException() {
         super();
     }

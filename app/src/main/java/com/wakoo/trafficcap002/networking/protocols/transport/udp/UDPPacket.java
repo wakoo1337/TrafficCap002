@@ -7,7 +7,7 @@ import com.wakoo.trafficcap002.networking.protocols.transport.Datagram;
 
 import java.nio.ByteBuffer;
 
-public class UDPPacket implements Datagram {
+public final class UDPPacket implements Datagram {
     private final IPPacket parent;
     private final int src_port, dst_port;
     private final ByteBuffer payload;

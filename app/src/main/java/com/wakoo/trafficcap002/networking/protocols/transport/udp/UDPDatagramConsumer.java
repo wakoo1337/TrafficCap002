@@ -14,7 +14,7 @@ import java.nio.channels.Selector;
 import java.util.HashMap;
 import java.util.Map;
 
-public class UDPDatagramConsumer implements DatagramConsumer {
+public final class UDPDatagramConsumer implements DatagramConsumer {
     private final Map<Integer, UDPExternalPort> ports;
     private final Selector selector;
     private final FileOutputStream out;

@@ -10,7 +10,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 
-public class IPv4Packet implements IPPacket {
+public final class IPv4Packet implements IPPacket {
     private final InetAddress source, destination;
     private final int protocol;
     private final ByteBuffer datagram;

@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
 import java.util.function.Consumer;
 
-public class IPv4BufferConsumer implements Consumer<ByteBuffer> {
+public final class IPv4BufferConsumer implements Consumer<ByteBuffer> {
     private final FileOutputStream out;
     private final Selector sel;
     private final TCPDatagramConsumer tcp;
