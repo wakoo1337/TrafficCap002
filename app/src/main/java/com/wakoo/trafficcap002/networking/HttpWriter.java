@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class HttpWriter {
+public final class HttpWriter {
     private final Set<String> active;
     private final String site_root;
     private final ExecutorService pool;
@@ -49,22 +49,20 @@ public class HttpWriter {
                     try {
                         final HttpURLConnection connection;
                         connection = (HttpURLConnection) url.openConnection();
-                        try {
-                            connection.setRequestMethod("POST");
-                            connection.setRequestProperty("Content-Type", "application/octet-stream");
-                            connection.setInstanceFollowRedirects(false);
-                            connection.setDoOutput(true);
-                            connection.setDoInput(false);
-                            connection.setFixedLengthStreamingMode(data.limit());
-                            connection.connect();
-                            final OutputStream out_stream = connection.getOutputStream();
+                        connection.setRequestMethod("POST");
+                        connection.setRequestProperty("Content-Type", "application/octet-stream");
+                        connection.setDoOutput(true);
+                        connection.setDoInput(false);
+                        connection.setFixedLengthStreamingMode(data.limit());
+                        try (final OutputStream out_stream = connection.getOutputStream()) {
                             out_stream.write(data.array(), data.arrayOffset(), data.limit());
-                            out_stream.close();
+                            out_stream.flush();
                         } catch (
                                 IOException ioexcp) {
                             Log.e("Сброс пакетов на сервер", "Ошибка ввода-вывода", ioexcp);
                         } finally {
-                                connection.disconnect();
+                            final int response = connection.getResponseCode();
+                            connection.disconnect();
                         }
                     } catch (
                             IOException ioexcp) {
@@ -74,6 +72,7 @@ public class HttpWriter {
             });
         } catch (
                 MalformedURLException malformedurl) {
+            Log.e("Сброс пакетов на сервер", "Неверный формат адреса", malformedurl);
         } catch (
                 UnsupportedEncodingException unsupportedEncodingException) {
             throw new RuntimeException(unsupportedEncodingException);
