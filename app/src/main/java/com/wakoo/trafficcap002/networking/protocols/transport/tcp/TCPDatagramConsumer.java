@@ -6,6 +6,7 @@ import static com.wakoo.trafficcap002.networking.protocols.transport.tcp.TCPPack
 
 import android.util.Log;
 
+import com.wakoo.trafficcap002.networking.HttpWriter;
 import com.wakoo.trafficcap002.networking.PcapWriter;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacketBuilder;
@@ -27,13 +28,15 @@ public final class TCPDatagramConsumer implements DatagramConsumer {
     private final Map<TCPEndpoints, TCPConnection> connections;
     private final Selector selector;
     private final FileOutputStream out;
-    private final PcapWriter writer;
+    private final PcapWriter pcap_writer;
+    private final HttpWriter http_writer;
 
-    public TCPDatagramConsumer(Selector selector, FileOutputStream out, PcapWriter writer) {
+    public TCPDatagramConsumer(Selector selector, FileOutputStream out, PcapWriter pcap_writer, HttpWriter http_writer) {
         connections = new HashMap<>();
         this.selector = selector;
         this.out = out;
-        this.writer = writer;
+        this.pcap_writer = pcap_writer;
+        this.http_writer = http_writer;
     }
 
     @Override
@@ -49,7 +52,7 @@ public final class TCPDatagramConsumer implements DatagramConsumer {
                 if (tcp_packet.getFlags()[POS_RST])
                     connections.remove(endpoints).closeByApplication();
                 else
-                    connection.consumePacket(tcp_packet);
+                    connection.consumePacket(tcp_packet, http_writer);
             } else {
                 // Соединения нет
                 if (!(tcp_packet.getFlags()[POS_RST] || tcp_packet.getFlags()[POS_SYN])) {
@@ -64,12 +67,12 @@ public final class TCPDatagramConsumer implements DatagramConsumer {
                     packets = ip_builder.createPackets();
                     for (byte[] packet : packets) {
                         out.write(packet);
-                        writer.writePacket(packet, packet.length);
+                        pcap_writer.writePacket(packet, packet.length);
                     }
                 } else if (tcp_packet.getFlags()[POS_SYN] && (!tcp_packet.getFlags()[POS_ACK]) && (!tcp_packet.getFlags()[POS_RST])) {
                     // Принимаем новое соединение
                     final TCPConnection new_connection;
-                    new_connection = new TCPConnection(connections, tcp_packet, endpoints, this.selector, this.out, this.writer);
+                    new_connection = new TCPConnection(connections, tcp_packet, endpoints, this.selector, this.out, this.pcap_writer);
                     connections.put(endpoints, new_connection);
                 }
             }

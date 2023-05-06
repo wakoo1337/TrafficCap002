@@ -7,27 +7,42 @@ import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+import com.wakoo.trafficcap002.networking.HttpWriter;
 import com.wakoo.trafficcap002.networking.threads.DescriptorListener;
 import com.wakoo.trafficcap002.networking.threads.SocketsListener;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Set;
 
 public final class CaptureService extends VpnService {
     public static final String APP_TO_LISTEN = "com.wakoo.trafficcap002.CaptureService.listenapp";
+    public static final String SITE_TO_WRITE = "com.wakoo.trafficcap002.CaptureService.writesite";
 
+    private String site;
     private ParcelFileDescriptor pfd;
     private SocketsListener sock_listener;
     private DescriptorListener desc_listsner;
     private Thread sock_thread, desc_thread;
+    private HttpWriter http_writer;
 
-    public static InetAddress getLocalInet4() throws UnknownHostException {
-        return InetAddress.getByAddress(new byte[]{(byte) 192, 88, 99, 3});
+    public static InetAddress getLocalInet4() {
+        try {
+            return InetAddress.getByAddress(new byte[]{-64, 88, 99, 3});
+        } catch (
+                UnknownHostException uhost) {
+            return null;
+        }
     }
 
     public static InetAddress getLocalInet6() throws UnknownHostException {
-        return InetAddress.getByAddress(new byte[]{-2, -128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3});
+        try {
+            return InetAddress.getByAddress(new byte[]{-2, -128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3});
+        } catch (
+                UnknownHostException uhost) {
+            return null;
+        }
     }
 
     @Override
@@ -48,6 +63,7 @@ public final class CaptureService extends VpnService {
                 } else {
                     builder.addDisallowedApplication(getPackageName());
                 }
+                site = intent.getStringExtra(SITE_TO_WRITE);
                 builder.addAddress(getLocalInet4(), 32)
                         .addRoute(InetAddress.getByAddress(new byte[]{0, 0, 0, 0}), 0)
                         .addAddress(getLocalInet6(), 128)
@@ -99,5 +115,11 @@ public final class CaptureService extends VpnService {
     }
 
     public class CaptureServiceBinder extends Binder {
+        public void setActiveLabelsSet(Set<String> active) {
+            if (site != null) {
+                http_writer = new HttpWriter(active, site);
+                sock_listener.setHttpWriter(http_writer);
+            }
+        }
     }
 }

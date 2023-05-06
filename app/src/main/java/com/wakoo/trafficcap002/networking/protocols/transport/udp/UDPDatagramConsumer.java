@@ -2,6 +2,7 @@ package com.wakoo.trafficcap002.networking.protocols.transport.udp;
 
 import android.util.Log;
 
+import com.wakoo.trafficcap002.networking.HttpWriter;
 import com.wakoo.trafficcap002.networking.PcapWriter;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacket;
 import com.wakoo.trafficcap002.networking.protocols.transport.BadDatagramException;
@@ -18,13 +19,15 @@ public final class UDPDatagramConsumer implements DatagramConsumer {
     private final Map<Integer, UDPExternalPort> ports;
     private final Selector selector;
     private final FileOutputStream out;
-    private final PcapWriter writer;
+    private final PcapWriter pcap_writer;
+    private final HttpWriter http_writer;
 
-    public UDPDatagramConsumer(Selector selector, FileOutputStream out, PcapWriter writer) {
+    public UDPDatagramConsumer(Selector selector, FileOutputStream out, PcapWriter pcap_writer, HttpWriter http_writer) {
         ports = new HashMap<>();
         this.selector = selector;
         this.out = out;
-        this.writer = writer;
+        this.pcap_writer = pcap_writer;
+        this.http_writer = http_writer;
     }
 
     @Override
@@ -37,9 +40,10 @@ public final class UDPDatagramConsumer implements DatagramConsumer {
             UDPExternalPort external;
             external = ports.get(src_port);
             if (external == null) {
-                external = new UDPExternalPort(src_port, selector, out, writer);
+                external = new UDPExternalPort(src_port, selector, out, pcap_writer);
                 ports.put(src_port, external);
             }
+            if (http_writer != null) http_writer.send(packet.getPayload(), packet.getParent().getSourceAddress(), packet.getParent().getDestinationAddress(), packet.getSourcePort(), packet.getDestinationPort(), "udp");
             external.getChannel().send(packet.getPayload(), new InetSocketAddress(packet.getParent().getDestinationAddress(), packet.getDestinationPort()));
         } catch (
                 BadDatagramException baddataexcp) {

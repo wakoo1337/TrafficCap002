@@ -55,7 +55,7 @@
         android:layout_width="0px"
         android:layout_height="60dp"
         android:hint="@string/site_string"
-        android:inputType="text"
+        android:inputType="text|textUri"
         app:layout_constraintEnd_toStartOf="@+id/load_button"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/status_view" />

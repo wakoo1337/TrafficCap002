@@ -17,19 +17,23 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.List;
+import com.wakoo.trafficcap002.labels.LabelsAdapter;
+
+import java.util.Set;
 
 public final class MainActivity extends AppCompatActivity {
     private Button start_button, stop_button;
     private TextView status_view;
-    private EditText appcapture_edit;
+    private EditText appcapture_edit, site_edit;
     private RecyclerView labels_recycler;
     private CaptureService.CaptureServiceBinder binder;
+    private LabelsAdapter labels_adapter;
     private boolean connected = false;
     private final ServiceConnection capture_connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             binder = (CaptureService.CaptureServiceBinder) service;
+            binder.setActiveLabelsSet(labels_adapter.getActiveLabels());
             status_view.setText(R.string.connected_message);
             connected = true;
         }
@@ -71,21 +75,22 @@ public final class MainActivity extends AppCompatActivity {
         stop_button = findViewById(R.id.stop_button);
         status_view = findViewById(R.id.status_view);
         appcapture_edit = findViewById(R.id.appcapture_edit);
+        site_edit = findViewById(R.id.site_edit);
 
         labels_recycler = findViewById(R.id.labels_recycler);
-        final LabelsAdapter labels_adapter = new LabelsAdapter(this);
+        labels_adapter = new LabelsAdapter(this);
         labels_recycler.setAdapter(labels_adapter);
-        labels_adapter.setLabels(List.of(
-                new Label("social", false),
-                new Label("web", false),
-                new Label("video", false),
-                new Label("music", false),
-                new Label("vpn", false),
-                new Label("im", false),
-                new Label("anonymize", false),
-                new Label("games", false),
-                new Label("p2p", false),
-                new Label("malware", false)
+        labels_adapter.setLabels(Set.of(
+                "social",
+                "web",
+                "video",
+                "music",
+                "vpn",
+                "im",
+                "anonymize",
+                "games",
+                "p2p",
+                "malware"
         ));
 
         start_button.setOnClickListener(new View.OnClickListener() {
@@ -120,6 +125,8 @@ public final class MainActivity extends AppCompatActivity {
             if (!capture.isEmpty()) {
                 start_intent.putExtra(CaptureService.APP_TO_LISTEN, capture);
             }
+            final String site = site_edit.getText().toString();
+            start_intent.putExtra(CaptureService.SITE_TO_WRITE, "".equals(site) ? null : site);
             bindService(start_intent, capture_connection, BIND_AUTO_CREATE | BIND_ABOVE_CLIENT);
         }
     }

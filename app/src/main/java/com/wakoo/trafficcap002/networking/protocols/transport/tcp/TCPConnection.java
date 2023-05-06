@@ -12,6 +12,7 @@ import static java.nio.channels.SelectionKey.OP_CONNECT;
 import static java.nio.channels.SelectionKey.OP_READ;
 import static java.nio.channels.SelectionKey.OP_WRITE;
 
+import com.wakoo.trafficcap002.networking.HttpWriter;
 import com.wakoo.trafficcap002.networking.PcapWriter;
 import com.wakoo.trafficcap002.networking.protocols.ip.IPPacketBuilder;
 import com.wakoo.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
@@ -48,7 +49,7 @@ public final class TCPConnection implements ConnectionState {
     private final TCPOption mss, tx_scale, rx_scale;
     private final SelectionKey key;
     private final FileOutputStream out;
-    private final PcapWriter writer;
+    private final PcapWriter pcap_writer;
     private final Map<TCPEndpoints, TCPConnection> connections;
     private final List<ByteBuffer> site_queue; // Очередь отправки на удалённый сайт
     private final List<TCPSegmentData> app_queue; // Очередь отправки на приложение
@@ -58,7 +59,7 @@ public final class TCPConnection implements ConnectionState {
     private int last_window; // Масштабированное последнее значение окна. Вместе с предыдущим параметром используется для оценки возможности отправки сегментов.
     private ConnectionState state;
 
-    public TCPConnection(Map<TCPEndpoints, TCPConnection> connections, TCPPacket packet, TCPEndpoints endpoints, Selector selector, FileOutputStream out, PcapWriter writer) throws IOException {
+    public TCPConnection(Map<TCPEndpoints, TCPConnection> connections, TCPPacket packet, TCPEndpoints endpoints, Selector selector, FileOutputStream out, PcapWriter pcap_writer) throws IOException {
         this.endpoints = endpoints;
         this.syn_packet = packet;
         final SocketChannel channel = SocketChannel.open();
@@ -70,7 +71,7 @@ public final class TCPConnection implements ConnectionState {
         this.key = channel.register(selector, OP_CONNECT, this);
         this.out = out;
         this.connections = connections;
-        this.writer = writer;
+        this.pcap_writer = pcap_writer;
         this.mss = packet.getMSS();
         this.tx_scale = packet.getScale().getPresence() ? zero_option_true : zero_option_false;
         this.rx_scale = packet.getScale();
@@ -92,8 +93,8 @@ public final class TCPConnection implements ConnectionState {
     }
 
     @Override
-    public void consumePacket(TCPPacket packet) throws IOException {
-        state.consumePacket(packet);
+    public void consumePacket(TCPPacket packet, HttpWriter http_writer) throws IOException {
+        state.consumePacket(packet, http_writer);
     }
 
     @Override
@@ -102,8 +103,8 @@ public final class TCPConnection implements ConnectionState {
     }
 
     @Override
-    public void processSelectionKey() throws IOException {
-        state.processSelectionKey();
+    public void processSelectionKey(HttpWriter http_writer) throws IOException {
+        state.processSelectionKey(http_writer);
     }
 
     private int getOurRecieveWindow() {
@@ -161,7 +162,7 @@ public final class TCPConnection implements ConnectionState {
         packets = ip_builder.createPackets();
         for (final byte[] packet : packets) {
             out.write(packet);
-            writer.writePacket(packet, packet.length);
+            pcap_writer.writePacket(packet, packet.length);
         }
     }
 
@@ -191,7 +192,7 @@ public final class TCPConnection implements ConnectionState {
         packets = ip_builder.createPackets();
         for (final byte[] packet : packets) {
             out.write(packet);
-            writer.writePacket(packet, packet.length);
+            pcap_writer.writePacket(packet, packet.length);
         }
     }
 
@@ -212,7 +213,7 @@ public final class TCPConnection implements ConnectionState {
         packets = ip_builder.createPackets();
         for (final byte[] packet : packets) {
             out.write(packet);
-            writer.writePacket(packet, packet.length);
+            pcap_writer.writePacket(packet, packet.length);
         }
     }
 
@@ -244,7 +245,7 @@ public final class TCPConnection implements ConnectionState {
                 packets = ip_builder.createPackets();
                 for (final byte[] packet : packets) {
                     out.write(packet);
-                    writer.writePacket(packet, packet.length);
+                    pcap_writer.writePacket(packet, packet.length);
                 }
             }
         }
@@ -254,11 +255,11 @@ public final class TCPConnection implements ConnectionState {
         // Принят пакет SYN. Нужно соединиться с удалённым сайтом и уведомить об этом приложение.
 
         @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet, HttpWriter http_writer) throws IOException {
         }
 
         @Override
-        public void processSelectionKey() throws IOException {
+        public void processSelectionKey(HttpWriter http_writer) throws IOException {
             if (key.isConnectable()) {
                 final SocketChannel channel = (SocketChannel) key.channel();
                 try {
@@ -278,7 +279,7 @@ public final class TCPConnection implements ConnectionState {
                     packets = ip_builder.createPackets();
                     for (final byte[] packet : packets) {
                         out.write(packet);
-                        writer.writePacket(packet, packet.length);
+                        pcap_writer.writePacket(packet, packet.length);
                     }
                     suicide();
                 } catch (
@@ -293,7 +294,7 @@ public final class TCPConnection implements ConnectionState {
                     packets = ip_builder.createPackets();
                     for (final byte[] packet : packets) {
                         out.write(packet);
-                        writer.writePacket(packet, packet.length);
+                        pcap_writer.writePacket(packet, packet.length);
                     }
                     suicide();
                 } catch (
@@ -313,7 +314,7 @@ public final class TCPConnection implements ConnectionState {
         // Соединено с удалённым сайтом. Нужно уведомить об этом приложение и получить ответ.
 
         @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet, HttpWriter http_writer) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK] && (tcp_packet.getAck() == (our_seq[0] + 1))) {
                 our_seq[0]++;
                 final TCPPacketBuilder tcp_builder;
@@ -331,7 +332,7 @@ public final class TCPConnection implements ConnectionState {
                 byte[][] packets = ip_builder.createPackets();
                 for (byte[] packet : packets) {
                     out.write(packet);
-                    writer.writePacket(packet, packet.length);
+                    pcap_writer.writePacket(packet, packet.length);
                 }
                 state = new StateEstablisted();
                 last_window = tcp_packet.getWindow(rx_scale.getValue());
@@ -341,7 +342,7 @@ public final class TCPConnection implements ConnectionState {
         }
 
         @Override
-        public void processSelectionKey() throws IOException {
+        public void processSelectionKey(HttpWriter http_writer) throws IOException {
 
         }
 
@@ -361,7 +362,7 @@ public final class TCPConnection implements ConnectionState {
             byte[][] packets = ip_builder.createPackets();
             for (byte[] packet : packets) {
                 out.write(packet);
-                writer.writePacket(packet, packet.length);
+                pcap_writer.writePacket(packet, packet.length);
             }
         }
     }
@@ -370,7 +371,7 @@ public final class TCPConnection implements ConnectionState {
         // Соединение установлено с обеими сторонами. Нужно перебрасывать пакеты.
 
         @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet, HttpWriter http_writer) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK]) {
                 removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
                 final int old_ack = wanted_seq;
@@ -382,8 +383,13 @@ public final class TCPConnection implements ConnectionState {
                     while (urgent_data.hasRemaining())
                         sock.sendUrgentData(urgent_data.get());
                     final ByteBuffer payload = tcp_packet.getPayload();
-                    if (payload.hasRemaining())
+                    if (payload.hasRemaining()) {
                         site_queue.add(payload);
+                        if (http_writer != null) http_writer.send(payload.duplicate(),
+                                endpoints.getApplication().getAddress(), endpoints.getSite().getAddress(),
+                                endpoints.getApplication().getPort(), endpoints.getSite().getPort(),
+                                "tcp");
+                    }
                     wanted_seq += urgent_data.limit() + payload.limit();
                     if (tcp_packet.getFlags()[POS_FIN]) {
                         wanted_seq++;
@@ -401,7 +407,7 @@ public final class TCPConnection implements ConnectionState {
         }
 
         @Override
-        public void processSelectionKey() throws IOException {
+        public void processSelectionKey(HttpWriter http_writer) throws IOException {
             if (key.isValid()) {
                 if (key.isReadable()) {
                     final ByteBuffer data;
@@ -419,6 +425,10 @@ public final class TCPConnection implements ConnectionState {
                             segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
                             app_queue.addAll(segs);
                             sendRemainingToApp();
+                            if (http_writer != null) http_writer.send(data.duplicate(),
+                                    endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(),
+                                    endpoints.getSite().getPort(), endpoints.getApplication().getPort(),
+                                    "tcp");
                         }
                     } catch (
                             IOException ioexcp) {
@@ -464,7 +474,7 @@ public final class TCPConnection implements ConnectionState {
         private boolean reading_finished = false;
 
         @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet, HttpWriter http_writer) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK]) {
                 removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
                 final int old_ack = wanted_seq;
@@ -484,7 +494,7 @@ public final class TCPConnection implements ConnectionState {
         }
 
         @Override
-        public void processSelectionKey() throws IOException {
+        public void processSelectionKey(HttpWriter http_writer) throws IOException {
             if (key.isValid()) {
                 if (key.isReadable() && (!reading_finished)) {
                     final ByteBuffer data;
@@ -559,7 +569,7 @@ public final class TCPConnection implements ConnectionState {
         private boolean fin_got = false;
 
         @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet, HttpWriter http_writer) throws IOException {
             if (tcp_packet.getFlags()[POS_ACK]) {
                 removeConfirmedSegments(tcp_packet.getAck(), tcp_packet.getWindow(rx_scale.getValue()));
                 final int old_ack = wanted_seq;
@@ -601,7 +611,7 @@ public final class TCPConnection implements ConnectionState {
         }
 
         @Override
-        public void processSelectionKey() throws IOException {
+        public void processSelectionKey(HttpWriter http_writer) throws IOException {
             if (key.isValid()) {
                 if (key.isWritable()) {
                     final Iterator<ByteBuffer> iterator;
@@ -651,7 +661,7 @@ public final class TCPConnection implements ConnectionState {
         }
 
         @Override
-        public void consumePacket(TCPPacket tcp_packet) throws IOException {
+        public void consumePacket(TCPPacket tcp_packet, HttpWriter http_writer) throws IOException {
             if (wait_fin) {
                 if (tcp_packet.getFlags()[POS_FIN]) {
                     wanted_seq++;
@@ -666,7 +676,7 @@ public final class TCPConnection implements ConnectionState {
         }
 
         @Override
-        public void processSelectionKey() throws IOException {
+        public void processSelectionKey(HttpWriter http_writer) throws IOException {
 
         }
 

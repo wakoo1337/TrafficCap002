@@ -1,4 +1,4 @@
-package com.wakoo.trafficcap002;
+package com.wakoo.trafficcap002.labels;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -10,16 +10,22 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.wakoo.trafficcap002.R;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class LabelsAdapter extends RecyclerView.Adapter<LabelsAdapter.ViewLabelHolder> {
     private final List<Label> labels;
+    private final Set<String> active;
     private final LayoutInflater inflater;
 
-    LabelsAdapter(Context context) {
+    public LabelsAdapter(Context context) {
         this.labels = new ArrayList<>();
+        this.active = new HashSet<>();
         this.inflater = LayoutInflater.from(context);
     }
 
@@ -39,11 +45,17 @@ public final class LabelsAdapter extends RecyclerView.Adapter<LabelsAdapter.View
         return labels.size();
     }
 
-    public void setLabels(List<Label> labels) {
+    public void setLabels(Set<String> names) {
         this.labels.clear();
-        this.labels.addAll(labels);
+        this.active.clear();
+        for (final String name : names)
+            this.labels.add(new Label(name, active, false));
         Collections.sort(this.labels);
         notifyDataSetChanged();
+    }
+
+    public Set<String> getActiveLabels() {
+        return active;
     }
 
     public static class ViewLabelHolder extends RecyclerView.ViewHolder {
