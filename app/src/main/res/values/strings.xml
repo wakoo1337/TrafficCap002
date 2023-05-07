@@ -12,4 +12,6 @@
     <string name="unbound_message">Соединение со службой разорвано</string>
     <string name="connected_message">Соединено со службой</string>
     <string name="nullbind_message">Невозможно соединиться со службой</string>
+    <string name="badurl_message">URL сайта с метками неверного формата: </string>
+    <string name="label_ioerr_message">Ошибка ввода-вывода при загрузке меток: </string>
 </resources>

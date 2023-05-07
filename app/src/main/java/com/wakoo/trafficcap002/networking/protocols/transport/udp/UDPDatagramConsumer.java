@@ -43,7 +43,8 @@ public final class UDPDatagramConsumer implements DatagramConsumer {
                 external = new UDPExternalPort(src_port, selector, out, pcap_writer);
                 ports.put(src_port, external);
             }
-            if (http_writer != null) http_writer.send(packet.getPayload(), packet.getParent().getSourceAddress(), packet.getParent().getDestinationAddress(), packet.getSourcePort(), packet.getDestinationPort(), "udp");
+            if (http_writer != null)
+                http_writer.send(packet.getPayload(), packet.getParent().getSourceAddress(), packet.getParent().getDestinationAddress(), packet.getSourcePort(), packet.getDestinationPort(), "udp");
             external.getChannel().send(packet.getPayload(), new InetSocketAddress(packet.getParent().getDestinationAddress(), packet.getDestinationPort()));
         } catch (
                 BadDatagramException baddataexcp) {

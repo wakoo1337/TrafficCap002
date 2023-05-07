@@ -385,10 +385,11 @@ public final class TCPConnection implements ConnectionState {
                     final ByteBuffer payload = tcp_packet.getPayload();
                     if (payload.hasRemaining()) {
                         site_queue.add(payload);
-                        if (http_writer != null) http_writer.send(payload.duplicate(),
-                                endpoints.getApplication().getAddress(), endpoints.getSite().getAddress(),
-                                endpoints.getApplication().getPort(), endpoints.getSite().getPort(),
-                                "tcp");
+                        if (http_writer != null)
+                            http_writer.send(payload.duplicate(),
+                                    endpoints.getApplication().getAddress(), endpoints.getSite().getAddress(),
+                                    endpoints.getApplication().getPort(), endpoints.getSite().getPort(),
+                                    "tcp");
                     }
                     wanted_seq += urgent_data.limit() + payload.limit();
                     if (tcp_packet.getFlags()[POS_FIN]) {
@@ -425,10 +426,11 @@ public final class TCPConnection implements ConnectionState {
                             segs = TCPSegmentData.makeSegments(data, our_seq, mss.getValue());
                             app_queue.addAll(segs);
                             sendRemainingToApp();
-                            if (http_writer != null) http_writer.send(data.duplicate(),
-                                    endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(),
-                                    endpoints.getSite().getPort(), endpoints.getApplication().getPort(),
-                                    "tcp");
+                            if (http_writer != null)
+                                http_writer.send(data.duplicate(),
+                                        endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(),
+                                        endpoints.getSite().getPort(), endpoints.getApplication().getPort(),
+                                        "tcp");
                         }
                     } catch (
                             IOException ioexcp) {

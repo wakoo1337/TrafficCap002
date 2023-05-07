@@ -14,9 +14,9 @@ import com.wakoo.trafficcap002.R;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 public final class LabelsAdapter extends RecyclerView.Adapter<LabelsAdapter.ViewLabelHolder> {
     private final List<Label> labels;
@@ -25,7 +25,7 @@ public final class LabelsAdapter extends RecyclerView.Adapter<LabelsAdapter.View
 
     public LabelsAdapter(Context context) {
         this.labels = new ArrayList<>();
-        this.active = new HashSet<>();
+        this.active = new ConcurrentSkipListSet<>();
         this.inflater = LayoutInflater.from(context);
     }
 

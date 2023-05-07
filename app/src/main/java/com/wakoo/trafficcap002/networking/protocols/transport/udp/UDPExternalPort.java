@@ -68,7 +68,8 @@ public final class UDPExternalPort {
             ip_builder = new IPv6PacketBuilder(inet_from.getAddress(), local, udp_builder, 100, PROTOCOL_UDP);
         } else
             throw new RuntimeException("Неизвестный тип адреса");
-        if (http_writer != null) http_writer.send(buffer.duplicate(), inet_from.getAddress(), local, inet_from.getPort(), port, "udp");
+        if (http_writer != null)
+            http_writer.send(buffer.duplicate(), inet_from.getAddress(), local, inet_from.getPort(), port, "udp");
         final byte[][] packets;
         packets = ip_builder.createPackets();
         for (final byte[] packet : packets) {
