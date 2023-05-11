@@ -228,7 +228,7 @@ public final class TCPConnection implements ConnectionState {
         while (seg_iterator.hasNext()) {
             final TCPSegmentData seg;
             seg = seg_iterator.next();
-            if (seg.checkTimeoutExpiredThenUpdate() && ((seg.getSequenceNumber() + seg.getSegmentLength()) < (last_acknowledged + last_window))) {
+            if (seg.checkTimeoutExpiredThenUpdate() && ((seg.getSequenceNumber() + seg.getSegmentLength() - last_acknowledged) <= last_window)) {
                 final TCPPacketBuilder tcp_builder;
                 tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
                         endpoints.getApplication().getPort(),
@@ -260,47 +260,52 @@ public final class TCPConnection implements ConnectionState {
 
         @Override
         public void processSelectionKey(HttpWriter http_writer) throws IOException {
-            if (key.isConnectable()) {
-                final SocketChannel channel = (SocketChannel) key.channel();
-                try {
-                    channel.finishConnect();
-                    state = new StateSuccessfullyConnected();
-                    state.doPeriodic();
-                } catch (
-                        ConnectException |
-                        NoRouteToHostException e) {
-                    final DatagramBuilder icmp_builder;
-                    icmp_builder = new ICMPBuilder(syn_packet.getParent(), TYPE_DESTINATION_UNREACHABLE, CODE_HOST_UNREACHABLE);
-                    final IPPacketBuilder ip_builder;
-                    ip_builder = (syn_packet.getParent() instanceof IPv6Packet)
-                            ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv6)
-                            : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv4);
-                    final byte[][] packets;
-                    packets = ip_builder.createPackets();
-                    for (final byte[] packet : packets) {
-                        out.write(packet);
-                        pcap_writer.writePacket(packet, packet.length);
+            if (key.isValid()) {
+                if (key.isConnectable()) {
+                    final SocketChannel channel = (SocketChannel) key.channel();
+                    try {
+                        channel.finishConnect();
+                        state = new StateSuccessfullyConnected();
+                        state.doPeriodic();
+                    } catch (
+                            ConnectException |
+                            NoRouteToHostException e) {
+                        final DatagramBuilder icmp_builder;
+                        icmp_builder = new ICMPBuilder(syn_packet.getParent(), TYPE_DESTINATION_UNREACHABLE, CODE_HOST_UNREACHABLE);
+                        final IPPacketBuilder ip_builder;
+                        ip_builder = (syn_packet.getParent() instanceof IPv6Packet)
+                                ? new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv6)
+                                : new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv4);
+                        final byte[][] packets;
+                        packets = ip_builder.createPackets();
+                        for (final byte[] packet : packets) {
+                            out.write(packet);
+                            pcap_writer.writePacket(packet, packet.length);
+                        }
+                        suicide();
+                    } catch (
+                            PortUnreachableException e) {
+                        final DatagramBuilder icmp_builder;
+                        icmp_builder = new ICMPBuilder(syn_packet.getParent(), TYPE_DESTINATION_UNREACHABLE, CODE_PORT_UNREACHABLE);
+                        final IPPacketBuilder ip_builder;
+                        ip_builder = (syn_packet.getParent() instanceof IPv6Packet) ?
+                                new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv6) :
+                                new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv4);
+                        final byte[][] packets;
+                        packets = ip_builder.createPackets();
+                        for (final byte[] packet : packets) {
+                            out.write(packet);
+                            pcap_writer.writePacket(packet, packet.length);
+                        }
+                        suicide();
+                    } catch (
+                            IOException ioexcp) {
+                        suicide();
                     }
-                    suicide();
-                } catch (
-                        PortUnreachableException e) {
-                    final DatagramBuilder icmp_builder;
-                    icmp_builder = new ICMPBuilder(syn_packet.getParent(), TYPE_DESTINATION_UNREACHABLE, CODE_PORT_UNREACHABLE);
-                    final IPPacketBuilder ip_builder;
-                    ip_builder = (syn_packet.getParent() instanceof IPv6Packet) ?
-                            new IPv6PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv6) :
-                            new IPv4PacketBuilder(endpoints.getSite().getAddress(), endpoints.getApplication().getAddress(), icmp_builder, 100, PROTOCOL_ICMPv4);
-                    final byte[][] packets;
-                    packets = ip_builder.createPackets();
-                    for (final byte[] packet : packets) {
-                        out.write(packet);
-                        pcap_writer.writePacket(packet, packet.length);
-                    }
-                    suicide();
-                } catch (
-                        IOException ioexcp) {
-                    suicide();
                 }
+            } else {
+                key.channel().close();
+                suicide();
             }
         }
 
@@ -419,7 +424,7 @@ public final class TCPConnection implements ConnectionState {
                         data.flip();
                         if (readed == -1) {
                             // Сайт больше не будет передавать данные
-                            state = new StateMinusOneRecieved();
+                            state = new StateSiteEOFRecieved();
                             return;
                         } else {
                             final List<TCPSegmentData> segs;
@@ -565,7 +570,7 @@ public final class TCPConnection implements ConnectionState {
         }
     }
 
-    private final class StateMinusOneRecieved extends Periodic implements ConnectionState {
+    private final class StateSiteEOFRecieved extends Periodic implements ConnectionState {
         // read() вернула -1. Закончить отправку на сайт, разорвать соединение с ним. Передав остаток переданных данных на приложение и получив подтверждение, отправить FIN.
 
         private boolean fin_got = false;
