@@ -1,10 +1,10 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport.icmp;
 
+import java.nio.ByteBuffer;
+
 import ru.mtuci.trafficcap002.networking.ChecksumComputer;
 import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
 import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramBuilder;
-
-import java.nio.ByteBuffer;
 
 public final class ICMPBuilder implements DatagramBuilder {
     // Я знаю, что ICMP — протокол сетевой, а не транспортный

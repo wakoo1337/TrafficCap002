@@ -2,13 +2,13 @@ package ru.mtuci.trafficcap002.networking.protocols.ip.ipv4;
 
 import android.util.Log;
 
-import ru.mtuci.trafficcap002.networking.ChecksumComputer;
-import ru.mtuci.trafficcap002.networking.protocols.ip.BadIPPacketException;
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+
+import ru.mtuci.trafficcap002.networking.ChecksumComputer;
+import ru.mtuci.trafficcap002.networking.protocols.ip.BadIPPacketException;
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
 
 public final class IPv4Packet implements IPPacket {
     private final InetAddress source, destination;

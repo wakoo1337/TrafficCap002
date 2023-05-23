@@ -2,14 +2,14 @@ package ru.mtuci.trafficcap002.networking.protocols.ip.ipv4;
 
 import static ru.mtuci.trafficcap002.networking.threads.DescriptorListener.INTERFACE_MTU;
 
-import ru.mtuci.trafficcap002.networking.ChecksumComputer;
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramBuilder;
-
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import ru.mtuci.trafficcap002.networking.ChecksumComputer;
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramBuilder;
 
 public final class IPv4PacketBuilder implements IPPacketBuilder {
     private static final int HEADER_SIZE = 20;

@@ -1,5 +1,8 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport.tcp;
 
+import static java.nio.channels.SelectionKey.OP_CONNECT;
+import static java.nio.channels.SelectionKey.OP_READ;
+import static java.nio.channels.SelectionKey.OP_WRITE;
 import static ru.mtuci.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_ICMPv4;
 import static ru.mtuci.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_ICMPv6;
 import static ru.mtuci.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_TCP;
@@ -8,19 +11,6 @@ import static ru.mtuci.trafficcap002.networking.protocols.transport.icmp.ICMPBui
 import static ru.mtuci.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder.TYPE_DESTINATION_UNREACHABLE;
 import static ru.mtuci.trafficcap002.networking.protocols.transport.tcp.TCPPacket.POS_ACK;
 import static ru.mtuci.trafficcap002.networking.protocols.transport.tcp.TCPPacket.POS_FIN;
-import static java.nio.channels.SelectionKey.OP_CONNECT;
-import static java.nio.channels.SelectionKey.OP_READ;
-import static java.nio.channels.SelectionKey.OP_WRITE;
-
-import ru.mtuci.trafficcap002.networking.HttpWriter;
-import ru.mtuci.trafficcap002.networking.PcapWriter;
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.ip.ipv6.IPv6Packet;
-import ru.mtuci.trafficcap002.networking.protocols.ip.ipv6.IPv6PacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.transport.Periodic;
-import ru.mtuci.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -40,17 +30,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import ru.mtuci.trafficcap002.networking.HttpWriter;
+import ru.mtuci.trafficcap002.networking.PcapWriter;
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.ip.ipv6.IPv6Packet;
+import ru.mtuci.trafficcap002.networking.protocols.ip.ipv6.IPv6PacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.transport.Endpoints;
+import ru.mtuci.trafficcap002.networking.protocols.transport.Periodic;
+import ru.mtuci.trafficcap002.networking.protocols.transport.icmp.ICMPBuilder;
+
 public final class TCPConnection implements ConnectionState {
     private static final TCPOption zero_option_true = new TCPOption(0, true);
     private static final TCPOption zero_option_false = new TCPOption(0, false);
 
-    private final TCPEndpoints endpoints;
+    private final Endpoints endpoints;
     private final TCPPacket syn_packet;
     private final TCPOption mss, tx_scale, rx_scale;
     private final SelectionKey key;
     private final FileOutputStream out;
     private final PcapWriter pcap_writer;
-    private final Map<TCPEndpoints, TCPConnection> connections;
+    private final Map<Endpoints, TCPConnection> connections;
     private final List<ByteBuffer> site_queue; // Очередь отправки на удалённый сайт
     private final List<TCPSegmentData> app_queue; // Очередь отправки на приложение
     private final int[] our_seq; // SEQ следующего отправленного нами пакета
@@ -59,7 +60,7 @@ public final class TCPConnection implements ConnectionState {
     private int last_window; // Масштабированное последнее значение окна. Вместе с предыдущим параметром используется для оценки возможности отправки сегментов.
     private ConnectionState state;
 
-    public TCPConnection(Map<TCPEndpoints, TCPConnection> connections, TCPPacket packet, TCPEndpoints endpoints, Selector selector, FileOutputStream out, PcapWriter pcap_writer) throws IOException {
+    public TCPConnection(Map<Endpoints, TCPConnection> connections, TCPPacket packet, Endpoints endpoints, Selector selector, FileOutputStream out, PcapWriter pcap_writer) throws IOException {
         this.endpoints = endpoints;
         this.syn_packet = packet;
         final SocketChannel channel = SocketChannel.open();
@@ -228,7 +229,7 @@ public final class TCPConnection implements ConnectionState {
         while (seg_iterator.hasNext()) {
             final TCPSegmentData seg;
             seg = seg_iterator.next();
-            if (seg.checkTimeoutExpiredThenUpdate() && ((seg.getSequenceNumber() + seg.getSegmentLength() - last_acknowledged) <= last_window)) {
+            if (((seg.getSequenceNumber() + seg.getSegmentLength() - last_acknowledged) <= last_window) && seg.checkTimeoutExpiredThenUpdate()) {
                 final TCPPacketBuilder tcp_builder;
                 tcp_builder = new TCPPacketBuilder(endpoints.getSite().getPort(),
                         endpoints.getApplication().getPort(),
@@ -513,6 +514,7 @@ public final class TCPConnection implements ConnectionState {
                         if (readed == -1) {
                             // Сайт больше не будет передавать данные
                             reading_finished = true;
+                            key.channel().close();
                             if (app_queue.isEmpty()) {
                                 sendFin();
                                 state = new StateFinAnswer(false);
@@ -644,8 +646,12 @@ public final class TCPConnection implements ConnectionState {
                 }
                 key.interestOps((!site_queue.isEmpty()) ? OP_WRITE : 0);
             } else {
-                resetConnection();
-                suicide();
+                if (site_queue.isEmpty()) {
+                    key.channel().close();
+                } else {
+                    resetConnection();
+                    suicide();
+                }
             }
         }
 

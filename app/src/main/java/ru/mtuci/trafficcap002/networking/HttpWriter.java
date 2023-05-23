@@ -11,17 +11,19 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
-import java.util.Set;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import ru.mtuci.trafficcap002.labels.Category;
+
 public final class HttpWriter {
-    private final Set<String> active;
+    private final List<Category> categories;
     private final String site_root;
     private final ExecutorService pool;
 
-    public HttpWriter(Set<String> active, String site_root) {
-        this.active = active;
+    public HttpWriter(List<Category> categories, String site_root) {
+        this.categories = categories;
         this.site_root = site_root;
         this.pool = Executors.newSingleThreadExecutor();
     }
@@ -34,11 +36,10 @@ public final class HttpWriter {
                     .append("&src_port=").append(src_port)
                     .append("&dst_port=").append(dst_port)
                     .append("&protocol=").append(protocol);
-            if (!active.isEmpty()) {
-                sb.append("&labels=");
-                for (final String label : active)
-                    sb.append(label).append(",");
-                sb.deleteCharAt(sb.length() - 1);
+            for (Category c : categories) {
+                if (c.getEnabled()) {
+                    sb.append(c.getName()).append("=").append(c.getLabels().get(c.getIndex()).getName());
+                }
             }
             final String path = sb.toString();
             final URL url;

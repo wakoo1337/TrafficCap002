@@ -3,12 +3,12 @@ package ru.mtuci.trafficcap002.networking.threads;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
-import ru.mtuci.trafficcap002.CaptureService;
-
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
+import ru.mtuci.trafficcap002.CaptureService;
 
 public final class DescriptorListener implements Runnable {
     public static final int INTERFACE_MTU = 8192;

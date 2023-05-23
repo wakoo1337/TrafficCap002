@@ -1,8 +1,8 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport.tcp;
 
-import ru.mtuci.trafficcap002.networking.HttpWriter;
-
 import java.io.IOException;
+
+import ru.mtuci.trafficcap002.networking.HttpWriter;
 
 public interface ConnectionState {
     void consumePacket(TCPPacket tcp_packet, HttpWriter http_writer) throws IOException;

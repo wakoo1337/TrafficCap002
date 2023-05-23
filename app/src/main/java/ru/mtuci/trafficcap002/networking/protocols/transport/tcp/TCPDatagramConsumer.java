@@ -6,15 +6,6 @@ import static ru.mtuci.trafficcap002.networking.protocols.transport.tcp.TCPPacke
 
 import android.util.Log;
 
-import ru.mtuci.trafficcap002.networking.HttpWriter;
-import ru.mtuci.trafficcap002.networking.PcapWriter;
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.ip.ipv6.IPv6PacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.transport.BadDatagramException;
-import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramConsumer;
-
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.Inet6Address;
@@ -24,8 +15,18 @@ import java.nio.channels.Selector;
 import java.util.HashMap;
 import java.util.Map;
 
+import ru.mtuci.trafficcap002.networking.HttpWriter;
+import ru.mtuci.trafficcap002.networking.PcapWriter;
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.ip.ipv6.IPv6PacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.transport.BadDatagramException;
+import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramConsumer;
+import ru.mtuci.trafficcap002.networking.protocols.transport.Endpoints;
+
 public final class TCPDatagramConsumer implements DatagramConsumer {
-    private final Map<TCPEndpoints, TCPConnection> connections;
+    private final Map<Endpoints, TCPConnection> connections;
     private final Selector selector;
     private final FileOutputStream out;
     private final PcapWriter pcap_writer;
@@ -44,8 +45,8 @@ public final class TCPDatagramConsumer implements DatagramConsumer {
         try {
             final TCPPacket tcp_packet;
             tcp_packet = TCPPacket.of(parent);
-            final TCPEndpoints endpoints;
-            endpoints = new TCPEndpoints(new InetSocketAddress(tcp_packet.getParent().getSourceAddress(), tcp_packet.getSourcePort()), new InetSocketAddress(tcp_packet.getParent().getDestinationAddress(), tcp_packet.getDestinationPort()));
+            final Endpoints endpoints;
+            endpoints = new Endpoints(new InetSocketAddress(tcp_packet.getParent().getSourceAddress(), tcp_packet.getSourcePort()), new InetSocketAddress(tcp_packet.getParent().getDestinationAddress(), tcp_packet.getDestinationPort()));
             final TCPConnection connection;
             connection = connections.get(endpoints);
             if (connection != null) {

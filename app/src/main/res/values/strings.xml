@@ -1,17 +1,31 @@
 <resources>
-    <string name="app_name">TrafficCap002</string>
-    <string name="hello_string">Приложение для захвата трафика</string>
-    <string name="app_to_capture_string">Приложение для захвата (или сразу все, если не заполнено)</string>
-    <string name="start_button">Начать захват</string>
-    <string name="stop_button">Прекратить захват</string>
-    <string name="site_string">Адрес сайта для обмена данными</string>
-    <string name="update_string">Обновить</string>
+    <string name="app_name">ru.mtuci.trafficcap002</string>
+    <string name="type_server">Укажите сервер</string>
+    <string name="sel_app">Укажите приложение</string>
+    <string name="start">Вкл.</string>
+    <string name="stop">Откл.</string>
+    <string name="select">Выбор</string>
+    <string name="communicate">Связь</string>
+    <string name="back">Назад</string>
 
-    <string name="ready_message">Готово к захвату</string>
-    <string name="forbidden_message">Разрешите использование VPN, без него не заработает</string> <!-- Если не дунуть, чуда не произойдёт -->
-    <string name="unbound_message">Соединение со службой разорвано</string>
-    <string name="connected_message">Соединено со службой</string>
-    <string name="nullbind_message">Невозможно соединиться со службой</string>
-    <string name="badurl_message">URL сайта с метками неверного формата: </string>
-    <string name="label_ioerr_message">Ошибка ввода-вывода при загрузке меток: </string>
+    <string name="drawer_opened">Открыто</string>
+    <string name="drawer_closed">Закрыто</string>
+
+    <string name="allow_vpn">Разрешите использование VPN, он требуется для захвата трафика приложений</string>
+    <string name="app_not_set">Укажите приложение для захвата</string>
+
+    <string name="select_classifier">Выберите классификатор</string>
+    <string name="set_hparams">Задайте гиперпараметры классификатора</string>
+    <string name="select_datasets">Выберите наборы данных</string>
+    <string name="configure_attributes">Настроить атрибуты</string>
+    <string name="start_experiment">Начать эксперимент</string>
+    <string name="vertical_ellipsis">&#8942;</string>
+    <string name="up_arrow">↑</string>
+    <string name="down_arrow">↓</string>
+    <string name="multiply">Умножить на коэффициент</string>
+    <string name="modulo">Взять по модулю</string> <!-- Название вопиюще неверное -->
+    <string name="thresholds">Привести к порогам</string>
+
+    <string name="numberic_attribute">числовой</string>
+    <string name="nominal_attribute">номинальный</string>
 </resources>

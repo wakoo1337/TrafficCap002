@@ -5,14 +5,14 @@ import static ru.mtuci.trafficcap002.networking.protocols.transport.DatagramCons
 
 import android.util.Log;
 
-import ru.mtuci.trafficcap002.networking.protocols.ip.BadIPPacketException;
-import ru.mtuci.trafficcap002.networking.protocols.transport.tcp.TCPDatagramConsumer;
-import ru.mtuci.trafficcap002.networking.protocols.transport.udp.UDPDatagramConsumer;
-
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
 import java.util.function.Consumer;
+
+import ru.mtuci.trafficcap002.networking.protocols.ip.BadIPPacketException;
+import ru.mtuci.trafficcap002.networking.protocols.transport.tcp.TCPDatagramConsumer;
+import ru.mtuci.trafficcap002.networking.protocols.transport.udp.UDPDatagramConsumer;
 
 public final class IPv4BufferConsumer implements Consumer<ByteBuffer> {
     private final FileOutputStream out;

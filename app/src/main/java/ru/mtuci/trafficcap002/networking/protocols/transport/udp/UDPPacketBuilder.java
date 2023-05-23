@@ -1,9 +1,9 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport.udp;
 
+import java.nio.ByteBuffer;
+
 import ru.mtuci.trafficcap002.networking.ChecksumComputer;
 import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramBuilder;
-
-import java.nio.ByteBuffer;
 
 public final class UDPPacketBuilder implements DatagramBuilder {
     private final int src_port, dst_port;

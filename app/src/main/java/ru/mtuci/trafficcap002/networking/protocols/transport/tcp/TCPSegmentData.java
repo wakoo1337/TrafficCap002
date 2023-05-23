@@ -1,10 +1,10 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport.tcp;
 
-import ru.mtuci.trafficcap002.networking.protocols.transport.Periodic;
-
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
+
+import ru.mtuci.trafficcap002.networking.protocols.transport.Periodic;
 
 public final class TCPSegmentData {
     private final ByteBuffer data;

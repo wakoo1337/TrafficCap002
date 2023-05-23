@@ -1,11 +1,11 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport.udp;
 
+import java.nio.ByteBuffer;
+
 import ru.mtuci.trafficcap002.networking.ChecksumComputer;
 import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
 import ru.mtuci.trafficcap002.networking.protocols.transport.BadDatagramException;
 import ru.mtuci.trafficcap002.networking.protocols.transport.Datagram;
-
-import java.nio.ByteBuffer;
 
 public final class UDPPacket implements Datagram {
     private final IPPacket parent;

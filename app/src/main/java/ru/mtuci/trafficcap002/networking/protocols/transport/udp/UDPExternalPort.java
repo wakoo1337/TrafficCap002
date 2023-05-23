@@ -1,14 +1,7 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport.udp;
 
-import static ru.mtuci.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_UDP;
 import static java.nio.channels.SelectionKey.OP_READ;
-
-import ru.mtuci.trafficcap002.CaptureService;
-import ru.mtuci.trafficcap002.networking.HttpWriter;
-import ru.mtuci.trafficcap002.networking.PcapWriter;
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.ip.ipv6.IPv6PacketBuilder;
+import static ru.mtuci.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_UDP;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -21,6 +14,13 @@ import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.Selector;
+
+import ru.mtuci.trafficcap002.CaptureService;
+import ru.mtuci.trafficcap002.networking.HttpWriter;
+import ru.mtuci.trafficcap002.networking.PcapWriter;
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.ip.ipv4.IPv4PacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.ip.ipv6.IPv6PacketBuilder;
 
 public final class UDPExternalPort {
     private final DatagramChannel channel;

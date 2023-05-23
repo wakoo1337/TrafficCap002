@@ -7,14 +7,15 @@ import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
-import ru.mtuci.trafficcap002.networking.HttpWriter;
-import ru.mtuci.trafficcap002.networking.threads.DescriptorListener;
-import ru.mtuci.trafficcap002.networking.threads.SocketsListener;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Set;
+import java.util.List;
+
+import ru.mtuci.trafficcap002.labels.Category;
+import ru.mtuci.trafficcap002.networking.HttpWriter;
+import ru.mtuci.trafficcap002.networking.threads.DescriptorListener;
+import ru.mtuci.trafficcap002.networking.threads.SocketsListener;
 
 public final class CaptureService extends VpnService {
     public static final String APP_TO_LISTEN = "ru.mtuci.trafficcap002.CaptureService.listenapp";
@@ -115,9 +116,9 @@ public final class CaptureService extends VpnService {
     }
 
     public class CaptureServiceBinder extends Binder {
-        public void setActiveLabelsSet(Set<String> active) {
-            if (site != null) {
-                http_writer = new HttpWriter(active, site);
+        public void setCategories(List<Category> categories) {
+            if (!"".equals(site)) {
+                http_writer = new HttpWriter(categories, site);
                 sock_listener.setHttpWriter(http_writer);
             }
         }

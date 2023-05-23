@@ -3,13 +3,13 @@ package ru.mtuci.trafficcap002.networking.protocols.ip.ipv6;
 import static ru.mtuci.trafficcap002.networking.protocols.ip.ipv6.IPv6Packet.HEADER_FRAGMENT;
 import static ru.mtuci.trafficcap002.networking.threads.DescriptorListener.INTERFACE_MTU;
 
-import ru.mtuci.trafficcap002.networking.ChecksumComputer;
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
-import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramBuilder;
-
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import ru.mtuci.trafficcap002.networking.ChecksumComputer;
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacketBuilder;
+import ru.mtuci.trafficcap002.networking.protocols.transport.DatagramBuilder;
 
 public final class IPv6PacketBuilder implements IPPacketBuilder {
     private static int identification = 1;

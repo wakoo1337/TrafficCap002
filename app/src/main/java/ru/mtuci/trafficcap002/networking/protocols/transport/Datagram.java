@@ -1,8 +1,8 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport;
 
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
-
 import java.nio.ByteBuffer;
+
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
 
 public interface Datagram {
     ByteBuffer getPayload();

@@ -6,6 +6,15 @@ import static ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket.PROTOCOL_I
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import ru.mtuci.trafficcap002.CaptureService;
 import ru.mtuci.trafficcap002.networking.HttpWriter;
 import ru.mtuci.trafficcap002.networking.PcapWriter;
@@ -16,15 +25,6 @@ import ru.mtuci.trafficcap002.networking.protocols.transport.tcp.TCPConnection;
 import ru.mtuci.trafficcap002.networking.protocols.transport.tcp.TCPDatagramConsumer;
 import ru.mtuci.trafficcap002.networking.protocols.transport.udp.UDPDatagramConsumer;
 import ru.mtuci.trafficcap002.networking.protocols.transport.udp.UDPExternalPort;
-
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public final class SocketsListener implements Runnable {
     private final FileDescriptor fd;

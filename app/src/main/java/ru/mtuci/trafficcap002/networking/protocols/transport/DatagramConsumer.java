@@ -1,8 +1,8 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport;
 
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
-
 import java.util.function.Consumer;
+
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
 
 public interface DatagramConsumer extends Consumer<IPPacket> {
     int PROTOCOL_TCP = 6;

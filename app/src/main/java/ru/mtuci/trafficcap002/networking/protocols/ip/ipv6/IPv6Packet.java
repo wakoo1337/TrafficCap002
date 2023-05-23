@@ -4,13 +4,13 @@ import static ru.mtuci.trafficcap002.networking.protocols.transport.DatagramCons
 import static ru.mtuci.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_TCP;
 import static ru.mtuci.trafficcap002.networking.protocols.transport.DatagramConsumer.PROTOCOL_UDP;
 
-import ru.mtuci.trafficcap002.networking.protocols.ip.BadIPPacketException;
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+
+import ru.mtuci.trafficcap002.networking.protocols.ip.BadIPPacketException;
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
 
 public final class IPv6Packet implements IPPacket {
     public static final int HEADER_FRAGMENT = 44;

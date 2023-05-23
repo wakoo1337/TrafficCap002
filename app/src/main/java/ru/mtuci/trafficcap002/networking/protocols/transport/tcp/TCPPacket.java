@@ -1,14 +1,14 @@
 package ru.mtuci.trafficcap002.networking.protocols.transport.tcp;
 
-import ru.mtuci.trafficcap002.networking.ChecksumComputer;
-import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
-import ru.mtuci.trafficcap002.networking.protocols.transport.BadDatagramException;
-import ru.mtuci.trafficcap002.networking.protocols.transport.Datagram;
-
 import java.net.Inet6Address;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+
+import ru.mtuci.trafficcap002.networking.ChecksumComputer;
+import ru.mtuci.trafficcap002.networking.protocols.ip.IPPacket;
+import ru.mtuci.trafficcap002.networking.protocols.transport.BadDatagramException;
+import ru.mtuci.trafficcap002.networking.protocols.transport.Datagram;
 
 public final class TCPPacket implements Datagram {
     public static final int POS_URG = 0;
