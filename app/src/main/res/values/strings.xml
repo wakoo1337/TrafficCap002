@@ -2,9 +2,9 @@
     <string name="app_name">ru.mtuci.trafficcap002</string>
     <string name="type_server">Укажите сервер</string>
     <string name="sel_app">Укажите приложение</string>
-    <string name="start">Вкл.</string>
-    <string name="stop">Откл.</string>
-    <string name="select">Выбор</string>
+    <string name="start">Начать захват</string>
+    <string name="stop">Прекратить захват</string>
+    <string name="select_application">Выбор приложения</string>
     <string name="communicate">Связь</string>
     <string name="back">Назад</string>
 
@@ -14,9 +14,9 @@
     <string name="allow_vpn">Разрешите использование VPN, он требуется для захвата трафика приложений</string>
     <string name="app_not_set">Укажите приложение для захвата</string>
 
-    <string name="select_classifier">Выберите классификатор</string>
+    <string name="select_classifier">Выберите классификатор(ы)</string>
     <string name="set_hparams">Задайте гиперпараметры классификатора</string>
-    <string name="select_datasets">Выберите наборы данных</string>
+    <string name="select_datasets">Выберите набор(ы) данных</string>
     <string name="configure_attributes">Настроить атрибуты</string>
     <string name="start_experiment">Начать эксперимент</string>
     <string name="vertical_ellipsis">&#8942;</string>
@@ -28,4 +28,27 @@
 
     <string name="numberic_attribute">числовой</string>
     <string name="nominal_attribute">номинальный</string>
+
+    <string name="first_site">Введите название сайта в первый раз</string>
+    <string name="site_select">Выбрать сайт</string>
+    <string name="check_io_error">Ошибка IO при проверке: </string>
+
+    <string name="exps">Эксперименты</string>
+    <string name="capture">Захват</string>
+    <string name="your_app">Ваше приложение</string>
+    <string name="select">Выбор</string>
+    <string name="labels_config">Настройка меток</string>
+
+    <string name="add_label">Добавить метку</string>
+    <string name="label_name">Название метки (для компьютера)</string>
+    <string name="label_displayname">Отображаемое имя метки (для человека)</string>
+
+    <string name="for_human">Для человека</string>
+    <string name="for_computer">Для компьютера</string>
+    <string name="save">Сохранить</string>
+
+    <string name="add_category">Добавить категорию</string>
+    <string name="category_name">Название категории (для компьютера)</string>
+    <string name="category_displayname">Отображаемое имя метки (для человека)</string>
+    <string name="elements_selected">Выбрано элементов</string>
 </resources>

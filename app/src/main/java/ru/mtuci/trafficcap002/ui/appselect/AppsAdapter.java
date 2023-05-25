@@ -21,7 +21,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 
 import ru.mtuci.trafficcap002.R;
-import ru.mtuci.trafficcap002.ui.MainLayoutActivity;
+import ru.mtuci.trafficcap002.ui.MainActivity;
 
 public class AppsAdapter extends RecyclerView.Adapter<AppsAdapter.AppHolder> {
     private final Activity activity;
@@ -80,8 +80,8 @@ public class AppsAdapter extends RecyclerView.Adapter<AppsAdapter.AppHolder> {
                                                      public void onClick(View view) {
                                                          final Intent result_intent;
                                                          result_intent = new Intent();
-                                                         result_intent.putExtra(MainLayoutActivity.APP_PACKAGE_KEY, app.packageName);
-                                                         result_intent.putExtra(MainLayoutActivity.APP_NAME_KEY, app_name);
+                                                         result_intent.putExtra(MainActivity.APP_PACKAGE_KEY, app.packageName);
+                                                         result_intent.putExtra(MainActivity.APP_NAME_KEY, app_name);
                                                          AppsAdapter.this.activity.setResult(Activity.RESULT_OK, result_intent);
                                                          AppsAdapter.this.activity.finish();
                                                      }

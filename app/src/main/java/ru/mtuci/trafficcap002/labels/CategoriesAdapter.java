@@ -1,33 +1,42 @@
 package ru.mtuci.trafficcap002.labels;
 
+import static androidx.activity.result.ActivityResultCallerKt.registerForActivityResult;
+
 import android.content.Context;
+import android.content.Intent;
 import android.database.DataSetObserver;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
 import ru.mtuci.trafficcap002.R;
+import ru.mtuci.trafficcap002.ui.CaptureFragment;
 
 public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.CategoryHolder> {
     private final Context context;
     private final List<Category> categories;
     private final LayoutInflater inflater;
+    private final ActivityResultLauncher<Intent> add_result;
 
-    public CategoriesAdapter(Context context, List<Category> categories) {
+    public CategoriesAdapter(Context context, List<Category> categories, ActivityResultLauncher<Intent> add_result) {
         this.context = context;
         this.categories = categories;
         this.inflater = LayoutInflater.from(context);
+        this.add_result = add_result;
     }
 
     @NonNull
@@ -38,7 +47,7 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
 
     @Override
     public void onBindViewHolder(@NonNull CategoryHolder holder, int position) {
-        holder.bind(categories.get(position));
+        holder.bind(categories.get(position), position);
     }
 
     @Override
@@ -50,15 +59,17 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
         private final Context context;
         private final SwitchCompat enable_switch;
         private final Spinner value_spinner;
+        private final Button add_button;
 
         public CategoryHolder(Context context, View view) {
             super(view);
             this.context = context;
             this.enable_switch = view.findViewById(R.id.enable_switch);
             this.value_spinner = view.findViewById(R.id.value_spinner);
+            this.add_button = view.findViewById(R.id.add_button);
         }
 
-        public void bind(Category category) {
+        public void bind(Category category, int index) {
             enable_switch.setChecked(category.getEnabled());
             enable_switch.setText(category.getDisplayName());
             enable_switch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -78,6 +89,28 @@ public class CategoriesAdapter extends RecyclerView.Adapter<CategoriesAdapter.Ca
                 @Override
                 public void onNothingSelected(AdapterView<?> adapterView) {
 
+                }
+            });
+            add_button.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    final Intent intent;
+                    intent = new Intent(context, CategoryEditorActivity.class);
+                    final List<Label> labels = category.getLabels();
+                    final String[] names, display_names;
+                    names = new String[labels.size()];
+                    display_names = new String[labels.size()];
+                    int i=0;
+                    for (final Label label : labels) {
+                        names[i] = label.getName();
+                        display_names[i] = label.getDisplayName();
+                        i++;
+                    }
+                    intent.putExtra(CategoryEditorActivity.LABEL_NAMES, names);
+                    intent.putExtra(CategoryEditorActivity.LABEL_DISPLAY_NAMES, display_names);
+                    intent.putExtra(CaptureFragment.CATEGORY_INDEX, index);
+                    intent.putExtra(CategoryEditorActivity.CATEGORY_DISPLAY_NAME, category.getDisplayName());
+                    CategoriesAdapter.this.add_result.launch(intent);
                 }
             });
         }

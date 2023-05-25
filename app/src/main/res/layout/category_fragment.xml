@@ -20,14 +20,24 @@
         android:layout_height="48dp"
         android:spinnerMode="dropdown"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/add_button"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/enable_switch" />
+
+    <Button
+        android:id="@+id/add_button"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:text="@string/vertical_ellipsis"
+        app:layout_constraintBottom_toBottomOf="@+id/value_spinner"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/value_spinner" />
 
     <TextView
         android:id="@+id/streams_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="Тут будет число потоков"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/value_spinner" />

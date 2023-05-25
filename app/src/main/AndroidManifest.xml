@@ -25,19 +25,25 @@
                 <action android:name="android.net.VpnService" />
             </intent-filter>
         </service>
-        <activity android:name=".ui.MainLayoutActivity" android:enabled="true" android:exported="true" >
+        <activity android:name=".ui.HelloActivity" android:enabled="true" android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".ui.MainActivity" android:enabled="true" android:exported="false" >
+        </activity>
         <activity android:name=".ui.appselect.AppSelectActivity" android:enabled="true" android:exported="false">
         </activity>
-        <activity android:name=".ui.NewExperimentLayoutActivity" android:enabled="true" android:exported="false">
+        <activity android:name=".ui.NewExperimentActivity" android:enabled="true" android:exported="false">
         </activity>
         <activity android:name=".ui.attributes.AttributesLayoutActivity" android:enabled="true" android:exported="false">
         </activity>
         <activity android:name=".ui.attributes.AttributeScalerActivity" android:enabled="true" android:exported="false">
+        </activity>
+        <activity android:name=".labels.CategoryEditorActivity" android:enabled="true" android:exported="false">
+        </activity>
+        <activity android:name=".labels.CategoryCreatorActivity" android:enabled="true" android:exported="false">
         </activity>
     </application>
 </manifest>

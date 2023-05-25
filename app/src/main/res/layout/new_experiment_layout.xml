@@ -24,7 +24,7 @@
         app:layout_constraintTop_toBottomOf="@+id/newex_toolbar" />
 
     <Spinner
-        android:id="@+id/spinner"
+        android:id="@+id/newex_classifier_spinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="parent"
@@ -37,7 +37,7 @@
         android:layout_height="wrap_content"
         android:text="@string/set_hparams"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/spinner" />
+        app:layout_constraintTop_toBottomOf="@+id/newex_classifier_spinner" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -58,12 +58,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/select_datasets"
-        app:layout_constraintBottom_toTopOf="@+id/spinner2"
+        app:layout_constraintBottom_toTopOf="@+id/newex_dataset_spinner"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Spinner
-        android:id="@+id/spinner2"
+        android:id="@+id/newex_dataset_spinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toTopOf="@+id/attrs_button"
