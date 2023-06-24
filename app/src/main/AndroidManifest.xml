@@ -11,7 +11,7 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:installLocation="auto"
-        android:label="@string/app_name"
+        android:label="TrafficCap002"
         android:supportsRtl="true"
         android:theme="@style/Theme.TrafficCap002"
         android:usesCleartextTraffic="true"

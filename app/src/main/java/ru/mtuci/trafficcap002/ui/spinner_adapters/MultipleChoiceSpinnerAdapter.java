@@ -19,6 +19,7 @@ public class MultipleChoiceSpinnerAdapter implements SpinnerAdapter {
     private final LayoutInflater inflater;
     private final String[] names, display_names;
     private final boolean[] selected;
+    private View main_view;
 
     public MultipleChoiceSpinnerAdapter(Spinner spinner, String[] names, String[] display_names) {
         this.spinner = spinner;
@@ -41,6 +42,10 @@ public class MultipleChoiceSpinnerAdapter implements SpinnerAdapter {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 selected[i] = b;
+                if (main_view != null) {
+                    final TextView tv = main_view.findViewById(R.id.multiple_text_view);
+                    tv.setText(context.getString(R.string.elements_selected) + countSelectedElements());
+                }
             }
         });
         checkbox.setChecked(selected[i]);
@@ -86,10 +91,15 @@ public class MultipleChoiceSpinnerAdapter implements SpinnerAdapter {
         view = (old != null) ? old : inflater.inflate(R.layout.multiple_choice_view, viewGroup, false);
         final TextView multiple_text;
         multiple_text = view.findViewById(R.id.multiple_text_view);
+        multiple_text.setText(context.getString(R.string.elements_selected) + countSelectedElements());
+        main_view = view;
+        return view;
+    }
+
+    public int countSelectedElements() {
         int c=0;
         for (boolean b : selected) c += b ? 1 : 0;
-        multiple_text.setText(context.getString(R.string.elements_selected) + c);
-        return view;
+        return c;
     }
 
     @Override

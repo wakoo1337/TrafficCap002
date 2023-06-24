@@ -449,6 +449,7 @@ public final class TCPConnection implements ConnectionState {
                     final Iterator<ByteBuffer> iterator;
                     iterator = site_queue.iterator();
                     try {
+                        final int old_window = getOurRecieveWindow();
                         while (iterator.hasNext()) {
                             final ByteBuffer current;
                             current = iterator.next();
@@ -456,6 +457,7 @@ public final class TCPConnection implements ConnectionState {
                             if (!current.hasRemaining())
                                 iterator.remove();
                         }
+                        if (getOurRecieveWindow() != old_window) acknowledge();
                     } catch (
                             IOException ioexcp) {
                         resetConnection();
@@ -626,6 +628,7 @@ public final class TCPConnection implements ConnectionState {
                     final Iterator<ByteBuffer> iterator;
                     iterator = site_queue.iterator();
                     try {
+                        final int old_window = getOurRecieveWindow();
                         while (iterator.hasNext()) {
                             final ByteBuffer current;
                             current = iterator.next();
@@ -633,6 +636,7 @@ public final class TCPConnection implements ConnectionState {
                             if (!current.hasRemaining())
                                 iterator.remove();
                         }
+                        if (getOurRecieveWindow() != old_window) acknowledge();
                         if (site_queue.isEmpty()) {
                             key.channel().close();
                             return;

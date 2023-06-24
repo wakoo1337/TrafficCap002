@@ -19,8 +19,6 @@
         android:layout_height="wrap_content"
         android:text="TextView"
         android:textSize="20sp"
-        app:layout_constraintEnd_toStartOf="@+id/select_button"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toEndOf="@+id/image_icon"
         app:layout_constraintTop_toTopOf="@+id/image_icon" />
 
@@ -31,18 +29,8 @@
         android:text="TextView"
         android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="@+id/image_icon"
-        app:layout_constraintEnd_toStartOf="@+id/select_button"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toEndOf="@+id/image_icon"
         app:layout_constraintTop_toBottomOf="@+id/readable_view"
         app:layout_constraintVertical_bias="0.0" />
 
-    <Button
-        android:id="@+id/select_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/select"
-        app:layout_constraintBottom_toBottomOf="@+id/image_icon"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/image_icon" />
 </androidx.constraintlayout.widget.ConstraintLayout>

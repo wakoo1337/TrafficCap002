@@ -77,6 +77,7 @@ public class HelloActivity extends AppCompatActivity {
                         } catch (MalformedURLException malformed_url) {
                             setCheckbox(false);
                         } catch (IOException ioexcp) {
+                            setCheckbox(false);
                             HelloActivity.this.runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {

@@ -49,6 +49,6 @@
 
     <string name="add_category">Добавить категорию</string>
     <string name="category_name">Название категории (для компьютера)</string>
-    <string name="category_displayname">Отображаемое имя метки (для человека)</string>
+    <string name="category_displayname">Отображаемое имя категории (для человека)</string>
     <string name="elements_selected">Выбрано элементов</string>
 </resources>

@@ -30,10 +30,12 @@ public final class UDPExternalPort {
 
     public UDPExternalPort(int port, Selector selector, FileOutputStream out, PcapWriter writer) throws IOException {
         channel = DatagramChannel.open();
-        channel.configureBlocking(false);
-        channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
-        channel.bind(null);
-        channel.register(selector, OP_READ, this);
+        if (port != 0) {
+            channel.configureBlocking(false);
+            channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
+            channel.bind(null);
+            channel.register(selector, OP_READ, this);
+        }
         this.port = port;
         this.out = out;
         this.writer = writer;

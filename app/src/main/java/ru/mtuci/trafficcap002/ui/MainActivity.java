@@ -56,65 +56,11 @@ import ru.mtuci.trafficcap002.ui.appselect.AppSelectActivity;
 public class MainActivity extends AppCompatActivity {
     public static final String APP_PACKAGE_KEY = "ru.mtuci.trafficap002.APP_PACKAGE_KEY";
     public static final String APP_NAME_KEY = "ru.mtuci.trafficap002.APP_NAME_KEY";
-
     public static final String PREFERENCE_SITE = "site_address";
     public static final String PREFERENCES = "prefs";
 
-    private boolean connected = false;
-    private boolean url_ok = false;
+
     private List<Category> categories;
-    private String capture_package;
-    private final ActivityResultLauncher<Intent> app_select_result = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
-        @Override
-        public void onActivityResult(ActivityResult result) {
-            if (result.getResultCode() == RESULT_OK) {
-                //app_edit.setText(result.getData().getStringExtra(APP_NAME_KEY));
-                capture_package = result.getData().getStringExtra(APP_PACKAGE_KEY);
-            }
-        }
-    });
-    private CaptureService.CaptureServiceBinder binder;
-    private final ServiceConnection vpn_connection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            binder = (CaptureService.CaptureServiceBinder) service;
-            binder.setCategories(categories);
-            connected = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            binder = null;
-            unbindService(this);
-            connected = false;
-        }
-
-        @Override
-        public void onNullBinding(ComponentName name) {
-            binder = null;
-            unbindService(this);
-            connected = false;
-        }
-    };
-
-
-    private final ActivityResultLauncher<Intent> vpn_result = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
-        @Override
-        public void onActivityResult(ActivityResult result) {
-            if (result.getResultCode() == RESULT_OK) {
-                startVpn();
-            } else {
-                Toast.makeText(MainActivity.this, R.string.allow_vpn, Toast.LENGTH_LONG).show();
-            }
-        }
-    });
-
-    private final ActivityResultLauncher<Intent> new_category_result = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
-        @Override
-        public void onActivityResult(ActivityResult o) {
-
-        }
-    });
 
     public class TabsAdapter extends FragmentStateAdapter {
         private static final int POS_EXPERIMENTS=0;
@@ -161,17 +107,5 @@ public class MainActivity extends AppCompatActivity {
                 tab.setText((new int[]{R.string.exps, R.string.capture})[position]);
             }
         })).attach();
-    }
-
-
-    private void startVpn() {
-        Intent start_intent;
-        if (!connected) {
-            start_intent = new Intent(this, CaptureService.class);
-            //final String server = server_edit.getText().toString();
-            //start_intent.putExtra(CaptureService.SITE_TO_WRITE, url_ok ? null : server);
-            start_intent.putExtra(CaptureService.APP_TO_LISTEN, capture_package);
-            bindService(start_intent, vpn_connection, BIND_AUTO_CREATE | BIND_ABOVE_CLIENT);
-        }
     }
 }

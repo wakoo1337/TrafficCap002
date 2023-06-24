@@ -46,8 +46,7 @@ public final class SocketsListener implements Runnable {
             final FileOutputStream out = new FileOutputStream(fd);
             try (Selector selector = Selector.open()) {
                 this.selector = selector;
-                final UDPDatagramConsumer udp;
-                udp = new UDPDatagramConsumer(selector, out, pcap_writer, http_writer);
+                final UDPDatagramConsumer udp = new UDPDatagramConsumer(selector, out, pcap_writer, http_writer);
                 final TCPDatagramConsumer tcp = new TCPDatagramConsumer(selector, out, pcap_writer, http_writer);
                 final IPv4BufferConsumer ipv4_consumer = new IPv4BufferConsumer(selector, out, tcp, udp);
                 final IPv6BufferConsumer ipv6_consumer = new IPv6BufferConsumer(selector, out, tcp, udp);
